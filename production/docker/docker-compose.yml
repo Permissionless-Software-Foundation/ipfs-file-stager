@@ -3,9 +3,9 @@
 version: '3.9'
 
 services:
-  mongo-ipfs-service:
+  mongo-file-stage:
     image: mongo:4.2.0
-    container_name: mongo-ipfs-service
+    container_name: mongo-file-stage
     ports:
       - '5555:27017' # <host port>:<container port>
     volumes:
@@ -13,10 +13,10 @@ services:
     command: mongod --logpath=/dev/null # -- quiet
     restart: always
 
-  ipfs-service:
+  ipfs-file-stage:
     build: .
     #image: christroutner/ipfs-service-provider:v5.0.1
-    container_name: ipfs-service
+    container_name: ipfs-file-stage
     logging:
       driver: 'json-file'
       options:
@@ -24,12 +24,12 @@ services:
         max-file: '10'
     mem_limit: 4000mb
     links:
-      - mongo-ipfs-service
+      - mongo-file-stage
     ports:
       - '5040:5040' # <host port>:<container port>
       - '4001:4001'
       - '4003:4003'
     volumes:
-      - ../data/ipfsdata:/home/safeuser/ipfs-service-provider/.ipfsdata
-      - ./start-production.sh:/home/safeuser/ipfs-service-provider/start-production.sh
+      - ../data/ipfsdata:/home/safeuser/ipfs-file-stager/.ipfsdata
+      - ./start-production.sh:/home/safeuser/ipfs-file-stager/start-production.sh
     restart: always
