@@ -129,6 +129,8 @@ class IpfsRESTControllerLib {
   // Upload a file via HTTP and add it to the IPFS node.
   async upload (ctx) {
     try {
+      // console.log('ctx.request.files: ', ctx.request.files)
+
       const file = ctx.request.files.file
       // console.log('file: ', file)
 

@@ -27,18 +27,6 @@ class IpfsUseCases {
     this.upload = this.upload.bind(this)
   }
 
-  writeStreamError (error) {
-    console.log(`An error occured while writing to the file. Error: ${error.message}`)
-
-    return true
-  }
-
-  writeStreamFinished () {
-    console.log('File has finished downloading.')
-
-    return true
-  }
-
   // Recieve a file via HTTP. Add it to the IPFS node.
   async upload (inObj = {}) {
     try {
