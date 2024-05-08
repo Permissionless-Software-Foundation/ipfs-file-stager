@@ -1,7 +1,7 @@
 {
-  "name": "ipfs-service-provider",
-  "version": "5.0.0",
-  "description": "A Koa-based combination of a REST API and IPFS JSON RPC. Boilerplate for starting new projects.",
+  "name": "ipfs-file-stager",
+  "version": "1.0.0",
+  "description": "Recieves file uploads and stages them for pinning by ipfs-file-pin-service.",
   "main": "index.js",
   "type": "module",
   "scripts": {
@@ -19,10 +19,10 @@
   "author": "Chris Troutner <chris.troutner@gmail.com>",
   "license": "MIT",
   "apidoc": {
-    "title": "ipfs-service-provider",
+    "title": "ipfs-file-stager",
     "url": "localhost:5000"
   },
-  "repository": "Permissionless-Software-Foundation/ipfs-service-provider",
+  "repository": "Permissionless-Software-Foundation/ipfs-file-stager",
   "dependencies": {
     "@chainsafe/libp2p-gossipsub": "11.0.1",
     "@chainsafe/libp2p-noise": "14.1.0",
