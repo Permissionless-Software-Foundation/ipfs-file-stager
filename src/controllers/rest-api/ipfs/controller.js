@@ -34,6 +34,7 @@ class IpfsRESTControllerLib {
     this.handleError = this.handleError.bind(this)
     this.connect = this.connect.bind(this)
     this.getThisNode = this.getThisNode.bind(this)
+    this.upload = this.upload.bind(this)
   }
 
   /**
@@ -121,6 +122,21 @@ class IpfsRESTControllerLib {
     } catch (err) {
       wlogger.error('Error in ipfs/controller.js/getThisNode(): ')
       // ctx.throw(422, err.message)
+      this.handleError(ctx, err)
+    }
+  }
+
+  // Upload a file via HTTP and add it to the IPFS node.
+  async upload (ctx) {
+    try {
+      const file = ctx.request.files.file
+      // console.log('file: ', file)
+
+      const result = await this.useCases.ipfs.upload({ file })
+
+      ctx.body = result
+    } catch (err) {
+      wlogger.error('Error in ipfs/controller.js/upload(): ', err)
       this.handleError(ctx, err)
     }
   }

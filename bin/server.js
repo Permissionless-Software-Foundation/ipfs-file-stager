@@ -10,7 +10,7 @@
 // npm libraries
 import Koa from 'koa'
 
-import bodyParser from 'koa-bodyparser'
+// import bodyParser from 'koa-bodyparser'
 import convert from 'koa-convert'
 import logger from 'koa-logger'
 import mongoose from 'mongoose'
@@ -19,6 +19,7 @@ import passport from 'koa-passport'
 import mount from 'koa-mount'
 import serve from 'koa-static'
 import cors from 'kcors'
+import { koaBody } from 'koa-body'
 
 // Local libraries
 import config from '../config/index.js' // this first.
@@ -62,7 +63,8 @@ class Server {
       // MIDDLEWARE START
 
       app.use(convert(logger()))
-      app.use(bodyParser())
+      // app.use(bodyParser())
+      app.use(koaBody({ multipart: true }))
       app.use(session())
       app.use(errorMiddleware())
 
@@ -71,6 +73,9 @@ class Server {
 
       // Mount the page for displaying logs.
       app.use(mount('/logs', serve(`${process.cwd()}/config/logs`)))
+
+      // Serve the front-end app for uploading files.
+      app.use(mount('/app', serve(`${process.cwd()}/public/app`)))
 
       // User Authentication
       // require('../config/passport')

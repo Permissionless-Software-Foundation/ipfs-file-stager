@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>My Website</title>
+    <link rel="stylesheet" href="./style.css">
+    <link rel="icon" href="./favicon.ico" type="image/x-icon">
+  </head>
+  <body>
+    <main>
+        <h1>Welcome to My Website</h1>
+        <input type="file" />
+
+        <div>
+          <p id="cidOut"></p>
+        </div>
+    </main>
+	<script>
+    // Select your file input
+    const fileInput = document.querySelector("input[type='file']");// Add your onchange handler
+    fileInput.onchange = async e => {
+      console.log('onchange() triggered')
+
+      const files = e.target.files;
+      const fileToUpload = files[0];
+
+      let data = new FormData();
+      data.append("file", fileToUpload);
+
+      // Send as multipart/form-data
+      // Ensure the URL points to your server
+      const response = await fetch("http://localhost:5040/ipfs/upload", {
+        method: "POST",
+        body: data,
+      });
+      const result = await response.json();
+      console.log('result: ', result)
+
+      if(result.success) {
+        const p = document.querySelector('#cidOut')
+        p.innerText = `CID: ${result.cid}`
+      }
+    };
+  </script>
+  </body>
+</html>

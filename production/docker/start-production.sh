@@ -23,7 +23,7 @@ export COORD_NAME=ipfs-service-provider-generic
 export DBURL=mongodb://172.17.0.1:5555/ipfs-service-prod
 
 # Configure REST API port
-export PORT=5010
+export PORT=5040
 
 # Production settings using external go-ipfs node.
 export SVC_ENV=prod
