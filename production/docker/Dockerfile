@@ -56,7 +56,7 @@ RUN git clone https://github.com/Permissionless-Software-Foundation/ipfs-file-st
 WORKDIR /home/safeuser/ipfs-file-stager
 
 # For development: switch to unstable branch
-#RUN git checkout ct-unstable
+RUN git checkout tokentiger
 
 # Install dependencies
 #RUN mkdir .ipfsdata
