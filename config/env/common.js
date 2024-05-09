@@ -111,9 +111,9 @@ export default {
     '@type': 'WebAPI',
     name: ipfsCoordName,
     version,
-    protocol: 'generic-service',
+    protocol: 'ipfs-file-stager',
     description:
-      'This is a generic IPFS Serivice Provider that uses JSON RPC over IPFS to communicate with it. This instance has not been customized. Source code: https://github.com/Permissionless-Software-Foundation/ipfs-service-provider',
+      'This node can be used to upload files for staging to the PSF File Pinning Protocol',
     documentation: 'https://ipfs-service-provider.fullstack.cash/',
     provider: {
       '@type': 'Organization',
