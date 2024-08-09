@@ -45,19 +45,25 @@
       let data = new FormData();
       data.append("file", fileToUpload);
 
-      // Send as multipart/form-data
-      // Ensure the URL points to your server
-      const response = await fetch("https://file-stage.fullstack.cash/ipfs/upload", {
-        method: "POST",
-        body: data,
-      });
-      const result = await response.json();
-      console.log('result: ', result)
+      try {
+        // Send as multipart/form-data
+        // Ensure the URL points to your server
+        // const response = await fetch("https://file-stage.fullstack.cash/ipfs/upload", {
+        const response = await fetch("http://localhost:5040/ipfs/upload", {
+          method: "POST",
+          body: data,
+        });
+        const result = await response.json();
+        console.log('result: ', result)
 
-      if(result.success) {
-        const p = document.querySelector('#cidOut')
-        p.innerText = `CID: ${result.cid}`
+        if(result.success) {
+          const p = document.querySelector('#cidOut')
+          p.innerText = `CID: ${result.cid}`
+        }
+      } catch(err) {
+        console.error('Error trying to upload file: ', err)
       }
+
     };
   </script>
   </body>
