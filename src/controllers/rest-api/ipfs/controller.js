@@ -35,6 +35,7 @@ class IpfsRESTControllerLib {
     this.connect = this.connect.bind(this)
     this.getThisNode = this.getThisNode.bind(this)
     this.upload = this.upload.bind(this)
+    this.stat = this.stat.bind(this)
   }
 
   /**
@@ -139,6 +140,21 @@ class IpfsRESTControllerLib {
       ctx.body = result
     } catch (err) {
       wlogger.error('Error in ipfs/controller.js/upload(): ', err)
+      this.handleError(ctx, err)
+    }
+  }
+
+  // Get statistics on a CID.
+  async stat (ctx) {
+    try {
+      const cid = ctx.params.cid
+      // console.log(`stat() getting data on CID ${cid}...`)
+
+      const result = await this.useCases.ipfs.stat({ cid })
+
+      ctx.body = result
+    } catch (err) {
+      wlogger.error('Error in ipfs/controller.js/stat(): ', err)
       this.handleError(ctx, err)
     }
   }

@@ -25,6 +25,7 @@ class IpfsUseCases {
 
     // Bind 'this' object to all class subfunctions.
     this.upload = this.upload.bind(this)
+    this.stat = this.stat.bind(this)
   }
 
   // Recieve a file via HTTP. Add it to the IPFS node.
@@ -68,6 +69,27 @@ class IpfsUseCases {
       }
     } catch (err) {
       console.error('Error in ipfs-use-cases.js/upload()')
+      throw err
+    }
+  }
+
+  // Get statistics on a CID.
+  async stat (inObj = {}) {
+    try {
+      const { cid } = inObj
+
+      const stats = await this.adapters.ipfs.ipfs.fs.stat(cid)
+      // console.log('stats: ', stats)
+
+      const outObj = {
+        cid: stats.cid,
+        fileSize: Number(stats.fileSize)
+      }
+      console.log(`${JSON.stringify(outObj, null, 2)}`)
+
+      return outObj
+    } catch (err) {
+      console.error('Error in ipfs-use-cases.js/stat()')
       throw err
     }
   }
