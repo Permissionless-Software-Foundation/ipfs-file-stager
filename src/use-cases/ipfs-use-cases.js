@@ -26,6 +26,10 @@ class IpfsUseCases {
     // Bind 'this' object to all class subfunctions.
     this.upload = this.upload.bind(this)
     this.stat = this.stat.bind(this)
+    this.clearStagedFiles = this.clearStagedFiles.bind(this)
+
+    // State
+    this.cids = []
   }
 
   // Recieve a file via HTTP. Add it to the IPFS node.
@@ -63,6 +67,13 @@ class IpfsUseCases {
 
       const cid = fileData.toString()
 
+      // Add the CID to the state.
+      const now = new Date()
+      this.cids.push({
+        cid,
+        timestamp: now.toISOString()
+      })
+
       return {
         success: true,
         cid
@@ -91,6 +102,28 @@ class IpfsUseCases {
     } catch (err) {
       console.error('Error in ipfs-use-cases.js/stat()')
       throw err
+    }
+  }
+
+  // Clear staged files.
+  // This function is called every 24 hours by a Timer Controller. It deletes
+  // any files that were staged more than 24 hours ago.
+  async clearStagedFiles () {
+    // Get a list of CIDs to purge from the system.
+    const now = new Date()
+    const cutoff = new Date(now.getTime() - 24 * 60 * 60 * 1000)
+    const cidsToPurge = this.cids.filter(cid => new Date(cid.timestamp) > cutoff)
+
+    for (let i = 0; i < cidsToPurge.length; i++) {
+      const cid = cidsToPurge[i]
+      console.log(`Purging CID ${cid.cid} from the system...`)
+
+      try {
+        await this.adapters.ipfs.ipfs.fs.rm(cid.cid)
+        console.log(`Successfully deleted CID ${cid.cid} from the system.`)
+      } catch (err) {
+        console.error(`Error trying to delete CID ${cid.cid}: `, err)
+      }
     }
   }
 }

@@ -29,6 +29,7 @@ class TimerControllers {
     // Bind 'this' object to all subfunctions.
     this.exampleTimerFunc = this.exampleTimerFunc.bind(this)
     this.cleanUsage = this.cleanUsage.bind(this)
+    this.clearStagedFiles = this.clearStagedFiles.bind(this)
 
     // this.startTimers()
   }
@@ -37,9 +38,9 @@ class TimerControllers {
   startTimers () {
     // Any new timer control functions can be added here. They will be started
     // when the server starts.
-    this.optimizeWalletHandle = setInterval(this.exampleTimerFunc, 60000 * 60)
-    this.cleanUsageHandle = setInterval(this.cleanUsage, 60000 * 60) // 1 hour
-
+    this.optimizeWalletHandle = setInterval(this.exampleTimerFunc, 60000 * 61) // 1 hour
+    this.cleanUsageHandle = setInterval(this.cleanUsage, 60000 * 62) // 1 hour
+    this.clearStagedFilesHandle = setInterval(this.clearStagedFiles, 60000 * 63) // 1 hour
     return true
   }
 
@@ -72,6 +73,17 @@ class TimerControllers {
       return true
     } catch (err) {
       console.error('Error in time-controller.js/cleanUsage(): ', err)
+
+      // Note: Do not throw an error. This is a top-level function.
+      return false
+    }
+  }
+
+  clearStagedFiles () {
+    try {
+      this.useCases.ipfs.clearStagedFiles()
+    } catch (err) {
+      console.error('Error in time-controller.js/clearStagedFiles(): ', err)
 
       // Note: Do not throw an error. This is a top-level function.
       return false
