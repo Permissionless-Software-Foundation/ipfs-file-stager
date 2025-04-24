@@ -9,7 +9,8 @@ const BchPayment = new mongoose.Schema({
   address: { type: String, required: true },
   bchCost: { type: String, required: true },
   timeCreated: { type: String }, // ISO date string.
-  hdIndex: { type: String, required: true }
+  hdIndex: { type: String, required: true },
+  sizeInMb: { type: Number, required: true }
 })
 
 export default mongoose.model('bchPayment', BchPayment)

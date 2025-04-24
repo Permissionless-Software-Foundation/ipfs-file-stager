@@ -31,6 +31,8 @@ class IpfsUseCases {
     this.stat = this.stat.bind(this)
     this.clearStagedFiles = this.clearStagedFiles.bind(this)
     this.getPaymentAddr = this.getPaymentAddr.bind(this)
+    this.createPinClaim = this.createPinClaim.bind(this)
+
     // State
     this.cids = []
   }
@@ -170,7 +172,8 @@ class IpfsUseCases {
         address: cashAddress,
         bchCost,
         timeCreated: now.toISOString(),
-        hdIndex
+        hdIndex,
+        sizeInMb
       }
       const bchPaymentModel = new this.adapters.localdb.BchPayment(paymentModel)
       await bchPaymentModel.save()
@@ -183,6 +186,28 @@ class IpfsUseCases {
       return result
     } catch (err) {
       console.error('Error in ipfs-use-cases.js/getPaymentAddr(): ', err)
+      throw err
+    }
+  }
+
+  // Create a new Pin Claim if the payment address has been funded.
+  async createPinClaim (inObj = {}) {
+    try {
+      const { address, cid } = inObj
+      console.log('cid: ', cid)
+
+      const paymentModel = await this.adapters.localdb.BchPayment.findOne({ address })
+      if (!paymentModel) {
+        throw new Error(`Payment address ${address} not found in database.`)
+      }
+
+      const result = {
+        success: true
+      }
+
+      return result
+    } catch (err) {
+      console.error('Error in ipfs-use-cases.js/createPinClaim(): ', err)
       throw err
     }
   }
