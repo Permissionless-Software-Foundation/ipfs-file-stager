@@ -150,7 +150,12 @@ export default {
 
     // v2 Circuit Relay server (FullStack.cash)
     // '/ip4/78.46.129.7/tcp/4001/p2p/12D3KooWFQ11GQ5NubsJGhYZ4X3wrAGimLevxfm6HPExCrMYhpSL'
-  ]
+  ],
 
   // END IPFS CONFIGURATION
+
+  // BCH Payments feature. Disabled by default.
+  // enableBchPayments: process.env.ENABLE_BCH_PAYMENTS ? true : false
+  enableBchPayments: true,
+  markup: 0.1 // 10% markup for BCH payments.
 }

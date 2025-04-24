@@ -6,6 +6,7 @@
 
 // Local libraries
 import wlogger from '../../../adapters/wlogger.js'
+import config from '../../../../config/index.js'
 
 class IpfsRESTControllerLib {
   constructor (localConfig = {}) {
@@ -26,6 +27,7 @@ class IpfsRESTControllerLib {
     // Encapsulate dependencies
     // this.UserModel = this.adapters.localdb.Users
     // this.userUseCases = this.useCases.user
+    this.config = config
 
     // Bind 'this' object to all subfunctions
     this.getStatus = this.getStatus.bind(this)
@@ -36,6 +38,8 @@ class IpfsRESTControllerLib {
     this.getThisNode = this.getThisNode.bind(this)
     this.upload = this.upload.bind(this)
     this.stat = this.stat.bind(this)
+    this.getPaymentAddr = this.getPaymentAddr.bind(this)
+    this.createPinClaim = this.createPinClaim.bind(this)
   }
 
   /**
@@ -155,6 +159,63 @@ class IpfsRESTControllerLib {
       ctx.body = result
     } catch (err) {
       wlogger.error('Error in ipfs/controller.js/stat(): ', err)
+      this.handleError(ctx, err)
+    }
+  }
+
+  /**
+   * @api {post} /ipfs/getPaymentAddr Get a payment address to pay for file upload in BCH.
+   * @apiPermission public
+   * @apiName GetPaymentAddr
+   * @apiGroup REST BCH
+   * @apiDescription Get a payment address to pay for file upload in BCH.
+   *
+   * @apiExample Example usage:
+   * curl -H "Content-Type: application/json" -X POST -d '{ "sizeInMb": 1 }' localhost:5040/ipfs/getPaymentAddr
+   *
+   */
+  async getPaymentAddr (ctx) {
+    try {
+      if (!this.config.enableBchPayments) {
+        console.log('Throwing error. This is expected behavior.')
+        ctx.throw(501, 'BCH payments are not enabled in this instance of ipfs-file-stager.')
+      }
+
+      const { sizeInMb } = ctx.request.body
+
+      const result = await this.useCases.ipfs.getPaymentAddr({ sizeInMb })
+
+      ctx.body = result
+    } catch (err) {
+      console.error('Error in ipfs/controller.js/getPaymentAddr(): ', err)
+      // wlogger.error('Error in ipfs/controller.js/getPaymentAddr(): ', err)
+      this.handleError(ctx, err)
+    }
+  }
+
+  /**
+   * @api {post} /ipfs/createPinClaim Create a Pin Claim for a file.
+   * @apiPermission public
+   * @apiName createPinClaim
+   * @apiGroup REST BCH
+   * @apiDescription Create a Pin Claim for a file if the payment address has been funded.
+   *
+   * @apiExample Example usage:
+   * curl -H "Content-Type: application/json" -X POST \
+   * -d '{ "address": "bitcoincash:qq0jhnhd8wjjfx0295vafhku3vj9s5j3zcfcg2zlyn", \
+   * "cid": "bafybeidhiave6yci6gih6ixv5dp63p2qsgfxei4fwg77fov45qezewlpgq", \
+   * "filename": "test.txt" }' localhost:5040/ipfs/createPinClaim
+   *
+   */
+  async createPinClaim (ctx) {
+    try {
+      const { address, cid, filename } = ctx.request.body
+
+      const result = await this.useCases.ipfs.createPinClaim({ address, cid, filename })
+
+      ctx.body = result
+    } catch (err) {
+      console.error('Error in ipfs/controller.js/createPinClaim(): ', err)
       this.handleError(ctx, err)
     }
   }

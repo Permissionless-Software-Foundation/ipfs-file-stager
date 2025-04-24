@@ -5,9 +5,13 @@
 // Global npm libraries
 // import { exporter } from 'ipfs-unixfs-exporter'
 import fs from 'fs'
+import axios from 'axios'
+import BchTokenSweep from 'bch-token-sweep'
+import PSFFPP from 'psffpp'
 
 // Local libraries
 // import wlogger from '../adapters/wlogger.js'
+import config from '../../config/index.js'
 
 class IpfsUseCases {
   constructor (localConfig = {}) {
@@ -20,13 +24,18 @@ class IpfsUseCases {
     }
 
     // Encapsulate dependencies
-    // this.exporter = exporter
     this.fs = fs
+    this.axios = axios
+    this.config = config
+    this.BchTokenSweep = BchTokenSweep
+    this.PSFFPP = PSFFPP
 
     // Bind 'this' object to all class subfunctions.
     this.upload = this.upload.bind(this)
     this.stat = this.stat.bind(this)
     this.clearStagedFiles = this.clearStagedFiles.bind(this)
+    this.getPaymentAddr = this.getPaymentAddr.bind(this)
+    this.createPinClaim = this.createPinClaim.bind(this)
 
     // State
     this.cids = []
@@ -124,6 +133,129 @@ class IpfsUseCases {
       } catch (err) {
         console.error(`Error trying to delete CID ${cid.cid}: `, err)
       }
+    }
+  }
+
+  // Generate a new payment model. Calculate the cost to write the data, in BCH.
+  async getPaymentAddr (inObj = {}) {
+    try {
+      const { sizeInMb } = inObj
+
+      const wallet = this.adapters.wallet.bchWallet
+      const bchjs = wallet.bchjs
+
+      // Get the cost in PSF tokens to write 1MB to the network.
+      const writePrice = await wallet.getPsfWritePrice()
+      console.log('ipfs-use-cases.js/getPaymentAddr() writePrice: ', writePrice)
+
+      // Get the current cost of PSF tokens in BCH.
+      const response = await this.axios.get('https://psfoundation.cash/price')
+      const usdPerBch = response.data.usdPerBCH
+      const usdPerToken = response.data.usdPerToken
+      console.log('usdPerBch: ', usdPerBch)
+      console.log('usdPerToken: ', usdPerToken)
+      const bchPerToken = bchjs.Util.floor8(usdPerToken / usdPerBch)
+      console.log('ipfs-use-cases.js/getPaymentAddr() bchPerToken: ', bchPerToken)
+
+      // Cost to user in BCH will be the price to write the file plus 10% markup.
+      const psfCost = sizeInMb * writePrice
+      console.log('psfCost: ', psfCost)
+
+      // Expected transaction fees in BCH.
+      const txFees = 0.00002
+
+      const bchCost = bchjs.Util.floor8(psfCost * bchPerToken * (1 + this.config.markup) + txFees)
+      console.log('bchCost: ', bchCost)
+      // const result = await this.adapters.wallet.getPaymentAddr()
+      // return result
+
+      // Generate a new key pair
+      const { cashAddress, wif, hdIndex } = await this.adapters.wallet.getKeyPair()
+      console.log(`Got address ${cashAddress} from hdIndex ${hdIndex}.`)
+
+      const now = new Date()
+
+      // Create a new BCH payment database model.
+      const paymentModel = {
+        address: cashAddress,
+        wif,
+        bchCost,
+        timeCreated: now.toISOString(),
+        hdIndex,
+        sizeInMb
+      }
+      const bchPaymentModel = new this.adapters.localdb.BchPayment(paymentModel)
+      await bchPaymentModel.save()
+
+      const result = {
+        address: cashAddress,
+        bchCost
+      }
+
+      return result
+    } catch (err) {
+      console.error('Error in ipfs-use-cases.js/getPaymentAddr(): ', err)
+      throw err
+    }
+  }
+
+  // Create a new Pin Claim if the payment address has been funded.
+  async createPinClaim (inObj = {}) {
+    try {
+      const { address, cid, filename } = inObj
+      console.log('cid: ', cid)
+      console.log('address: ', address)
+      const paymentModel = await this.adapters.localdb.BchPayment.findOne({ address })
+      if (!paymentModel) {
+        throw new Error(`Payment address ${address} not found in database.`)
+      }
+      console.log('paymentModel: ', paymentModel)
+
+      const wallet = this.adapters.wallet.bchWallet
+
+      // Verify payment exists and is equal to or greater than the quoted cost.
+      const paymentAddress = paymentModel.address
+      const paymentBalance = await wallet.getBalance({ bchAddress: paymentAddress })
+      if (paymentBalance < paymentModel.bchCost) {
+        throw new Error(`Payment address ${paymentAddress} has insufficient balance.`)
+      }
+
+      // Sweep funds to the main wallet.
+      const sweeper = new this.BchTokenSweep(
+        paymentModel.wif,
+        wallet.walletInfo.privateKey,
+        wallet
+      )
+      await sweeper.populateObjectFromNetwork()
+      const hex = await sweeper.sweepTo(wallet.walletInfo.cashAddress)
+      const txid = await wallet.ar.sendTx(hex)
+      console.log('Swept funds to main app wallet: ', txid)
+
+      // Issue a Pin Claim.
+      const psffpp = new this.PSFFPP({ wallet })
+      const pinObj = {
+        cid,
+        filename,
+        fileSizeInMegabytes: parseInt(paymentModel.sizeInMb)
+      }
+      const { pobTxid, claimTxid } = await psffpp.createPinClaim(pinObj)
+      console.log('Created Pin Claim: ', { pobTxid, claimTxid })
+
+      // Update the model
+      paymentModel.pobTxId = pobTxid
+      paymentModel.claimTxId = claimTxid
+      await paymentModel.save()
+
+      const result = {
+        success: true,
+        pobTxid,
+        claimTxid
+      }
+
+      return result
+    } catch (err) {
+      console.error('Error in ipfs-use-cases.js/createPinClaim(): ', err)
+      throw err
     }
   }
 }

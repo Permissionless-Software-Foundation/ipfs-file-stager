@@ -47,12 +47,17 @@ class Adapters {
         this.bchjs = await this.fullStackJwt.instanceBchjs()
       }
 
+      // Load the wallet from the file.
+      const walletData = await this.wallet.openWallet()
+      // console.log('walletData: ', walletData)
+
       // Create a default instance of minimal-slp-wallet without initializing it
       // (without retrieving the wallets UTXOs). This instance will be overwritten
       // if the operator has configured BCH payments.
-      console.log('\nCreating default startup wallet. This wallet may be overwritten.')
-      await this.wallet.instanceWalletWithoutInitialization({}, { apiToken })
+      // console.log('\nCreating default startup wallet. This wallet may be overwritten.')
+      await this.wallet.instanceWallet(walletData, { apiToken })
       this.bchjs = this.wallet.bchWallet.bchjs
+      // console.log('this.wallet.bchWallet.walletInfo: ', this.wallet.bchWallet.walletInfo)
 
       // Start the IPFS node.
       // Do not start these adapters if this is an e2e test.
