@@ -7,6 +7,7 @@
 import fs from 'fs'
 import axios from 'axios'
 import BchTokenSweep from 'bch-token-sweep'
+import PSFFPP from 'psffpp'
 
 // Local libraries
 // import wlogger from '../adapters/wlogger.js'
@@ -27,6 +28,7 @@ class IpfsUseCases {
     this.axios = axios
     this.config = config
     this.BchTokenSweep = BchTokenSweep
+    this.PSFFPP = PSFFPP
 
     // Bind 'this' object to all class subfunctions.
     this.upload = this.upload.bind(this)
@@ -169,6 +171,7 @@ class IpfsUseCases {
 
       // Generate a new key pair
       const { cashAddress, wif, hdIndex } = await this.adapters.wallet.getKeyPair()
+      console.log(`Got address ${cashAddress} from hdIndex ${hdIndex}.`)
 
       const now = new Date()
 
@@ -199,7 +202,7 @@ class IpfsUseCases {
   // Create a new Pin Claim if the payment address has been funded.
   async createPinClaim (inObj = {}) {
     try {
-      const { address, cid } = inObj
+      const { address, cid, filename } = inObj
       console.log('cid: ', cid)
       console.log('address: ', address)
       const paymentModel = await this.adapters.localdb.BchPayment.findOne({ address })
@@ -226,12 +229,27 @@ class IpfsUseCases {
       await sweeper.populateObjectFromNetwork()
       const hex = await sweeper.sweepTo(wallet.walletInfo.cashAddress)
       const txid = await wallet.ar.sendTx(hex)
-      console.log('txid: ', txid)
+      console.log('Swept funds to main app wallet: ', txid)
 
       // Issue a Pin Claim.
+      const psffpp = new this.PSFFPP({ wallet })
+      const pinObj = {
+        cid,
+        filename,
+        fileSizeInMegabytes: parseInt(paymentModel.sizeInMb)
+      }
+      const { pobTxid, claimTxid } = await psffpp.createPinClaim(pinObj)
+      console.log('Created Pin Claim: ', { pobTxid, claimTxid })
+
+      // Update the model
+      paymentModel.pobTxId = pobTxid
+      paymentModel.claimTxId = claimTxid
+      await paymentModel.save()
 
       const result = {
-        success: true
+        success: true,
+        pobTxid,
+        claimTxid
       }
 
       return result

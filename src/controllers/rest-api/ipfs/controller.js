@@ -201,14 +201,17 @@ class IpfsRESTControllerLib {
    * @apiDescription Create a Pin Claim for a file if the payment address has been funded.
    *
    * @apiExample Example usage:
-   * curl -H "Content-Type: application/json" -X POST -d '{ "address": "bitcoincash:qq0jhnhd8wjjfx0295vafhku3vj9s5j3zcfcg2zlyn", "cid": "bafybeidhiave6yci6gih6ixv5dp63p2qsgfxei4fwg77fov45qezewlpgq" }' localhost:5040/ipfs/createPinClaim
+   * curl -H "Content-Type: application/json" -X POST \
+   * -d '{ "address": "bitcoincash:qq0jhnhd8wjjfx0295vafhku3vj9s5j3zcfcg2zlyn", \
+   * "cid": "bafybeidhiave6yci6gih6ixv5dp63p2qsgfxei4fwg77fov45qezewlpgq", \
+   * "filename": "test.txt" }' localhost:5040/ipfs/createPinClaim
    *
    */
   async createPinClaim (ctx) {
     try {
-      const { address, cid } = ctx.request.body
+      const { address, cid, filename } = ctx.request.body
 
-      const result = await this.useCases.ipfs.createPinClaim({ address, cid })
+      const result = await this.useCases.ipfs.createPinClaim({ address, cid, filename })
 
       ctx.body = result
     } catch (err) {
