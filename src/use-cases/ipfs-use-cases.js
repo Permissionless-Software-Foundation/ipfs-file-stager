@@ -6,6 +6,7 @@
 // import { exporter } from 'ipfs-unixfs-exporter'
 import fs from 'fs'
 import axios from 'axios'
+import BchTokenSweep from 'bch-token-sweep'
 
 // Local libraries
 // import wlogger from '../adapters/wlogger.js'
@@ -25,6 +26,7 @@ class IpfsUseCases {
     this.fs = fs
     this.axios = axios
     this.config = config
+    this.BchTokenSweep = BchTokenSweep
 
     // Bind 'this' object to all class subfunctions.
     this.upload = this.upload.bind(this)
@@ -157,19 +159,23 @@ class IpfsUseCases {
       const psfCost = sizeInMb * writePrice
       console.log('psfCost: ', psfCost)
 
-      const bchCost = bchjs.Util.floor8(psfCost * bchPerToken * (1 + this.config.markup))
+      // Expected transaction fees in BCH.
+      const txFees = 0.00002
+
+      const bchCost = bchjs.Util.floor8(psfCost * bchPerToken * (1 + this.config.markup) + txFees)
       console.log('bchCost: ', bchCost)
       // const result = await this.adapters.wallet.getPaymentAddr()
       // return result
 
       // Generate a new key pair
-      const { cashAddress, hdIndex } = await this.adapters.wallet.getKeyPair()
+      const { cashAddress, wif, hdIndex } = await this.adapters.wallet.getKeyPair()
 
       const now = new Date()
 
       // Create a new BCH payment database model.
       const paymentModel = {
         address: cashAddress,
+        wif,
         bchCost,
         timeCreated: now.toISOString(),
         hdIndex,
@@ -195,11 +201,34 @@ class IpfsUseCases {
     try {
       const { address, cid } = inObj
       console.log('cid: ', cid)
-
+      console.log('address: ', address)
       const paymentModel = await this.adapters.localdb.BchPayment.findOne({ address })
       if (!paymentModel) {
         throw new Error(`Payment address ${address} not found in database.`)
       }
+      console.log('paymentModel: ', paymentModel)
+
+      const wallet = this.adapters.wallet.bchWallet
+
+      // Verify payment exists and is equal to or greater than the quoted cost.
+      const paymentAddress = paymentModel.address
+      const paymentBalance = await wallet.getBalance({ bchAddress: paymentAddress })
+      if (paymentBalance < paymentModel.bchCost) {
+        throw new Error(`Payment address ${paymentAddress} has insufficient balance.`)
+      }
+
+      // Sweep funds to the main wallet.
+      const sweeper = new this.BchTokenSweep(
+        paymentModel.wif,
+        wallet.walletInfo.privateKey,
+        wallet
+      )
+      await sweeper.populateObjectFromNetwork()
+      const hex = await sweeper.sweepTo(wallet.walletInfo.cashAddress)
+      const txid = await wallet.ar.sendTx(hex)
+      console.log('txid: ', txid)
+
+      // Issue a Pin Claim.
 
       const result = {
         success: true

@@ -39,6 +39,7 @@ class IpfsRESTControllerLib {
     this.upload = this.upload.bind(this)
     this.stat = this.stat.bind(this)
     this.getPaymentAddr = this.getPaymentAddr.bind(this)
+    this.createPinClaim = this.createPinClaim.bind(this)
   }
 
   /**
@@ -200,7 +201,7 @@ class IpfsRESTControllerLib {
    * @apiDescription Create a Pin Claim for a file if the payment address has been funded.
    *
    * @apiExample Example usage:
-   * curl -H "Content-Type: application/json" -X POST -d '{ "address": "bitcoincash:qrvxd2uy446zd0n4wgqdc0zhvsgrrlscycn62llhtc", "cid": "bafybeidhiave6yci6gih6ixv5dp63p2qsgfxei4fwg77fov45qezewlpgq" }' localhost:5040/ipfs/createPinClaim
+   * curl -H "Content-Type: application/json" -X POST -d '{ "address": "bitcoincash:qq0jhnhd8wjjfx0295vafhku3vj9s5j3zcfcg2zlyn", "cid": "bafybeidhiave6yci6gih6ixv5dp63p2qsgfxei4fwg77fov45qezewlpgq" }' localhost:5040/ipfs/createPinClaim
    *
    */
   async createPinClaim (ctx) {
