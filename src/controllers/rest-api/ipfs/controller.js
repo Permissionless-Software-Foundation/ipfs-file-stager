@@ -6,6 +6,7 @@
 
 // Local libraries
 import wlogger from '../../../adapters/wlogger.js'
+import config from '../../../../config/index.js'
 
 class IpfsRESTControllerLib {
   constructor (localConfig = {}) {
@@ -26,6 +27,7 @@ class IpfsRESTControllerLib {
     // Encapsulate dependencies
     // this.UserModel = this.adapters.localdb.Users
     // this.userUseCases = this.useCases.user
+    this.config = config
 
     // Bind 'this' object to all subfunctions
     this.getStatus = this.getStatus.bind(this)
@@ -36,6 +38,7 @@ class IpfsRESTControllerLib {
     this.getThisNode = this.getThisNode.bind(this)
     this.upload = this.upload.bind(this)
     this.stat = this.stat.bind(this)
+    this.getPaymentAddr = this.getPaymentAddr.bind(this)
   }
 
   /**
@@ -155,6 +158,35 @@ class IpfsRESTControllerLib {
       ctx.body = result
     } catch (err) {
       wlogger.error('Error in ipfs/controller.js/stat(): ', err)
+      this.handleError(ctx, err)
+    }
+  }
+
+  /**
+   * @api {post} /ipfs/getPaymentAddr Get a payment address to pay for file upload in BCH.
+   * @apiPermission public
+   * @apiName GetPaymentAddr
+   * @apiGroup REST BCH
+   *
+   * @apiExample Example usage:
+   * curl -H "Content-Type: application/json" -X POST -d '{ "sizeInMb": 1 }' localhost:5040/ipfs/getPaymentAddr
+   *
+   */
+  async getPaymentAddr (ctx) {
+    try {
+      if (!this.config.enableBchPayments) {
+        console.log('Throwing error. This is expected behavior.')
+        ctx.throw(501, 'BCH payments are not enabled in this instance of ipfs-file-stager.')
+      }
+
+      const { sizeInMb } = ctx.request.body
+
+      const result = await this.useCases.ipfs.getPaymentAddr({ sizeInMb })
+
+      ctx.body = result
+    } catch (err) {
+      console.error('Error in ipfs/controller.js/getPaymentAddr(): ', err)
+      // wlogger.error('Error in ipfs/controller.js/getPaymentAddr(): ', err)
       this.handleError(ctx, err)
     }
   }

@@ -5,9 +5,11 @@
 // Global npm libraries
 // import { exporter } from 'ipfs-unixfs-exporter'
 import fs from 'fs'
+import axios from 'axios'
 
 // Local libraries
 // import wlogger from '../adapters/wlogger.js'
+import config from '../../config/index.js'
 
 class IpfsUseCases {
   constructor (localConfig = {}) {
@@ -20,14 +22,15 @@ class IpfsUseCases {
     }
 
     // Encapsulate dependencies
-    // this.exporter = exporter
     this.fs = fs
+    this.axios = axios
+    this.config = config
 
     // Bind 'this' object to all class subfunctions.
     this.upload = this.upload.bind(this)
     this.stat = this.stat.bind(this)
     this.clearStagedFiles = this.clearStagedFiles.bind(this)
-
+    this.getPaymentAddr = this.getPaymentAddr.bind(this)
     // State
     this.cids = []
   }
@@ -124,6 +127,63 @@ class IpfsUseCases {
       } catch (err) {
         console.error(`Error trying to delete CID ${cid.cid}: `, err)
       }
+    }
+  }
+
+  // Generate a new payment model. Calculate the cost to write the data, in BCH.
+  async getPaymentAddr (inObj = {}) {
+    try {
+      const { sizeInMb } = inObj
+
+      const wallet = this.adapters.wallet.bchWallet
+      const bchjs = wallet.bchjs
+
+      // Get the cost in PSF tokens to write 1MB to the network.
+      const writePrice = await wallet.getPsfWritePrice()
+      console.log('ipfs-use-cases.js/getPaymentAddr() writePrice: ', writePrice)
+
+      // Get the current cost of PSF tokens in BCH.
+      const response = await this.axios.get('https://psfoundation.cash/price')
+      const usdPerBch = response.data.usdPerBCH
+      const usdPerToken = response.data.usdPerToken
+      console.log('usdPerBch: ', usdPerBch)
+      console.log('usdPerToken: ', usdPerToken)
+      const bchPerToken = bchjs.Util.floor8(usdPerToken / usdPerBch)
+      console.log('ipfs-use-cases.js/getPaymentAddr() bchPerToken: ', bchPerToken)
+
+      // Cost to user in BCH will be the price to write the file plus 10% markup.
+      const psfCost = sizeInMb * writePrice
+      console.log('psfCost: ', psfCost)
+
+      const bchCost = bchjs.Util.floor8(psfCost * bchPerToken * (1 + this.config.markup))
+      console.log('bchCost: ', bchCost)
+      // const result = await this.adapters.wallet.getPaymentAddr()
+      // return result
+
+      // Generate a new key pair
+      const { cashAddress, hdIndex } = await this.adapters.wallet.getKeyPair()
+
+      const now = new Date()
+
+      // Create a new BCH payment database model.
+      const paymentModel = {
+        address: cashAddress,
+        bchCost,
+        timeCreated: now.toISOString(),
+        hdIndex
+      }
+      const bchPaymentModel = new this.adapters.localdb.BchPayment(paymentModel)
+      await bchPaymentModel.save()
+
+      const result = {
+        address: cashAddress,
+        bchCost
+      }
+
+      return result
+    } catch (err) {
+      console.error('Error in ipfs-use-cases.js/getPaymentAddr(): ', err)
+      throw err
     }
   }
 }
