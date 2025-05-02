@@ -19,7 +19,7 @@ Optional Features:
 - Setting the `enableBchPayments` flag in the config will turn on BCH payments. This will:
   - Opens the `POST /ipfs/getPaymentAddr` endpoint that allows users to obtain a BCH payment address.
   - Opens the `POST /ipfs/createPinClaim` endpoint that allows users to pay a Pin Claim via the BCH payment address.
-  - The app will generate its own wallet.json file on startup. That wallet can be loaded with BCH and PSF tokens. The app will then be able to generate Pin Claims for payment in BCH. It will burn its own stash of PSF tokens to generate the PSF token and pass on the cost (plus a markup) to the end user in BCH.
+  - The app will generate its own wallet.json file on startup, if it does not already exist. That wallet can be loaded with BCH and PSF tokens. The app will then be able to generate Pin Claims for payment in BCH. It will burn its own stash of PSF tokens to generate the PSF token and pass on the cost (plus a markup) to the end user in BCH.
 
 ## Requirements
 
