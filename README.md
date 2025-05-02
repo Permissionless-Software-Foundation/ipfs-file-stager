@@ -4,7 +4,9 @@
 
 ## Overview
 
-This repository is part of the [PSF File Pinning Service](https://psffpp.com) network. A live version of the codebase is available at [file-stage.fullstack.cash](https://file-stage.fullstack.cash).
+This repository is part of the [PSF File Pinning Service](https://psffpp.com) network. It is the back-end component for uploading files to the PSFFPP network. The front-end user interface code base in the [explorer.psffpp.com code base](https://github.com/Permissionless-Software-Foundation/explorer.psffpp.com).
+
+A live version of the this back-end codebase is available at [file-stage.fullstack.cash](https://file-stage.fullstack.cash). A live version of the front-end user interface is available at [explorer.psffpp.com](https://explorer.psffpp.com).
 
 This code base is forked from [ipfs-service-provider](https://github.com/Permissionless-Software-Foundation/ipfs-service-provider). It has adds the features: 
 
