@@ -8,9 +8,9 @@ This repository is part of the [PSF File Pinning Service](https://psffpp.com) ne
 
 A live version of the this back-end codebase is available at [file-stage.fullstack.cash](https://file-stage.fullstack.cash). A live version of the front-end user interface is available at [explorer.psffpp.com](https://explorer.psffpp.com).
 
-This code base is forked from [ipfs-service-provider](https://github.com/Permissionless-Software-Foundation/ipfs-service-provider). It has adds the features: 
+This code base is forked from [ipfs-service-provider](https://github.com/Permissionless-Software-Foundation/ipfs-service-provider). It has adds these features: 
 
-- It adds a REST API endpoint allowing files to be uploaded via HTTP. All files received will be added to the embedded Helia IPFS node. This will stage the file so that it can be picked up by nodes running the [ipfs-file-pin-service](https://github.com/Permissionless-Software-Foundation/ipfs-file-pin-service) software.
+- It adds a REST API endpoint allowing files to be uploaded via HTTP. All files received will be added to the embedded Helia IPFS node. This will stage the file so that it can be picked up by nodes running the [ipfs-file-pin-service](https://github.com/Permissionless-Software-Foundation/ipfs-file-pin-service) software, if the user makes a Pin Claim for the uploaded file.
 
 - Uploaded files are automatically deleted after 24 hours. This is long enough to stage the file for a Pin Claim. This software is not intended to host files for free for a long period of time.
 
