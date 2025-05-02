@@ -155,7 +155,6 @@ export default {
   // END IPFS CONFIGURATION
 
   // BCH Payments feature. Disabled by default.
-  // enableBchPayments: process.env.ENABLE_BCH_PAYMENTS ? true : false
-  enableBchPayments: true,
+  enableBchPayments: process.env.ENABLE_BCH_PAYMENTS ? true : false,
   markup: 0.1 // 10% markup for BCH payments.
 }

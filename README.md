@@ -4,7 +4,22 @@
 
 ## Overview
 
-This repository is forked from [ipfs-service-provider](https://github.com/Permissionless-Software-Foundation/ipfs-service-provider) v5. It adds a REST API endpoint allowing files to be uploaded via HTTP. All files recieved will be added to the embedded Helia IPFS node. This will stage the file so that it can be picked up by nodes running the [ipfs-file-pin-service](https://github.com/Permissionless-Software-Foundation/ipfs-file-pin-service) software.
+This repository is part of the [PSF File Pinning Service](https://psffpp.com) network. It is the back-end component for uploading files to the PSFFPP network. The front-end user interface code base in the [explorer.psffpp.com code base](https://github.com/Permissionless-Software-Foundation/explorer.psffpp.com).
+
+A live version of the this back-end codebase is available at [file-stage.fullstack.cash](https://file-stage.fullstack.cash). A live version of the front-end user interface is available at [explorer.psffpp.com](https://explorer.psffpp.com).
+
+This code base is forked from [ipfs-service-provider](https://github.com/Permissionless-Software-Foundation/ipfs-service-provider). It has adds these features: 
+
+- It adds a REST API endpoint allowing files to be uploaded via HTTP. All files received will be added to the embedded Helia IPFS node. This will stage the file so that it can be picked up by nodes running the [ipfs-file-pin-service](https://github.com/Permissionless-Software-Foundation/ipfs-file-pin-service) software, if the user makes a [Pin Claim](https://github.com/Permissionless-Software-Foundation/specifications/blob/master/ps010-file-pinning-protocol.md) for the uploaded file.
+
+- Uploaded files are automatically deleted after 24 hours. This is long enough to stage the file for a Pin Claim. This software is not intended to host files for free for a long period of time.
+
+Optional Features:
+
+- Setting the `enableBchPayments` flag in the config will turn on BCH payments. This will:
+  - Opens the `POST /ipfs/getPaymentAddr` endpoint that allows users to obtain a BCH payment address.
+  - Opens the `POST /ipfs/createPinClaim` endpoint that allows users to pay a Pin Claim via the BCH payment address.
+  - The app will generate its own wallet.json file on startup, if it does not already exist. That wallet can be loaded with BCH and PSF tokens. The app will then be able to generate Pin Claims for payment in BCH. It will burn its own stash of PSF tokens to generate the PSF token and pass on the cost (plus a markup) to the end user in BCH.
 
 ## Requirements
 
