@@ -1,7 +1,7 @@
 {
   "name": "ipfs-file-stager",
   "version": "1.0.0",
-  "description": "Recieves file uploads and stages them for pinning by ipfs-file-pin-service.",
+  "description": "Receives file uploads and stages them for pinning by ipfs-file-pin-service.",
   "main": "index.js",
   "type": "module",
   "scripts": {
