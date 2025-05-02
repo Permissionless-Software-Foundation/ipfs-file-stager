@@ -4,7 +4,9 @@
 
 ## Overview
 
-This repository is part of the [PSF File Pinning Service](https://psffpp.com) network. It is forked from [ipfs-service-provider](https://github.com/Permissionless-Software-Foundation/ipfs-service-provider). It has the following primary features: 
+This repository is part of the [PSF File Pinning Service](https://psffpp.com) network. A live version of the codebase is available at [file-stage.fullstack.cash](https://file-stage.fullstack.cash).
+
+This code base is forked from [ipfs-service-provider](https://github.com/Permissionless-Software-Foundation/ipfs-service-provider). It has adds the features: 
 
 - It adds a REST API endpoint allowing files to be uploaded via HTTP. All files received will be added to the embedded Helia IPFS node. This will stage the file so that it can be picked up by nodes running the [ipfs-file-pin-service](https://github.com/Permissionless-Software-Foundation/ipfs-file-pin-service) software.
 
