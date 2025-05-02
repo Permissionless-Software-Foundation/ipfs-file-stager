@@ -157,12 +157,18 @@ class IpfsUseCases {
       const bchPerToken = bchjs.Util.floor8(usdPerToken / usdPerBch)
       console.log('ipfs-use-cases.js/getPaymentAddr() bchPerToken: ', bchPerToken)
 
+      // Round up to 1MB if the file is less than 1MB.
+      let effectiveSize = sizeInMb
+      if (effectiveSize < 1) {
+        effectiveSize = 1
+      }
+
       // Cost to user in BCH will be the price to write the file plus 10% markup.
-      const psfCost = sizeInMb * writePrice
+      const psfCost = effectiveSize * writePrice
       console.log('psfCost: ', psfCost)
 
       // Expected transaction fees in BCH.
-      const txFees = 0.00002
+      const txFees = 0.00004
 
       const bchCost = bchjs.Util.floor8(psfCost * bchPerToken * (1 + this.config.markup) + txFees)
       console.log('bchCost: ', bchCost)
@@ -182,7 +188,7 @@ class IpfsUseCases {
         bchCost,
         timeCreated: now.toISOString(),
         hdIndex,
-        sizeInMb
+        sizeInMb: effectiveSize
       }
       const bchPaymentModel = new this.adapters.localdb.BchPayment(paymentModel)
       await bchPaymentModel.save()
@@ -229,7 +235,7 @@ class IpfsUseCases {
       await sweeper.populateObjectFromNetwork()
       const hex = await sweeper.sweepTo(wallet.walletInfo.cashAddress)
       const txid = await wallet.ar.sendTx(hex)
-      console.log('Swept funds to main app wallet: ', txid)
+      console.log('Swept funds to main app wallet. TXID: ', txid)
 
       // Issue a Pin Claim.
       const psffpp = new this.PSFFPP({ wallet })
@@ -238,6 +244,7 @@ class IpfsUseCases {
         filename,
         fileSizeInMegabytes: parseInt(paymentModel.sizeInMb)
       }
+      console.log('pinObj: ', pinObj)
       const { pobTxid, claimTxid } = await psffpp.createPinClaim(pinObj)
       console.log('Created Pin Claim: ', { pobTxid, claimTxid })
 
