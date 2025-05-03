@@ -35,4 +35,5 @@ services:
     volumes:
       - ../data/ipfsdata:/home/safeuser/ipfs-file-stager/.ipfsdata
       - ./start-production.sh:/home/safeuser/ipfs-file-stager/start-production.sh
+      #- ./wallet.json:/home/safeuser/ipfs-file-stager/wallet.json
     restart: always
