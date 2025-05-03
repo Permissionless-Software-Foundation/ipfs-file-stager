@@ -42,6 +42,12 @@ docker-compose up -d
 - You can bring the containers down with `docker-compose down`
 - You can bring the containers back up with `docker-compose up -d`.
 
+*Optional*:
+If you want to enable BCH payments: 
+ - Generate a wallet.json file with [psf-bch-wallet](https://github.com/Permissionless-Software-Foundation/psf-bch-wallet) and put it in the same directory as the docker-compose.yml file.
+ - Uncomment the volume line in docker-compose.yml, so the wallet file is mounted on startup.
+ - Uncomment the `ENABLE_BCH_PAYMENTS` environment variable in the start-production.sh file.
+
 ### Development Environment
 
 A development environment will allow you modify the code on-the-fly and contribute to the code base of this repository. Ubuntu v20 is the recommended OS for creating a dev environment. Other operating systems may cause issues.

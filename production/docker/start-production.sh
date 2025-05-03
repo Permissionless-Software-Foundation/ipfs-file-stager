@@ -41,4 +41,7 @@ export DEBUG_LEVEL=0
 # Use this if the IPFS node is behind a NAT or Firewall and cannot be accessed directly.
 export CONNECT_PREF=cr
 
+# Enable BCH payments.
+#export ENABLE_BCH_PAYMENTS=true
+
 npm start
