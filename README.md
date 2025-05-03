@@ -45,6 +45,7 @@ docker-compose up -d
 *Optional*:
 If you want to enable BCH payments: 
  - Generate a wallet.json file with [psf-bch-wallet](https://github.com/Permissionless-Software-Foundation/psf-bch-wallet) and put it in the same directory as the docker-compose.yml file.
+ - Add a property `nextAddress` to the wallet file, with a value of `2`.
  - Uncomment the volume line in docker-compose.yml, so the wallet file is mounted on startup.
  - Uncomment the `ENABLE_BCH_PAYMENTS` environment variable in the start-production.sh file.
 
