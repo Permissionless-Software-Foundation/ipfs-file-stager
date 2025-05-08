@@ -24,6 +24,7 @@ describe('#IPFS REST API', () => {
     const useCases = new UseCasesMock()
 
     uut = new IpfsApiController({ adapters, useCases })
+    uut.config.enableBchPayments = true
 
     sandbox = sinon.createSandbox()
 
@@ -178,6 +179,94 @@ describe('#IPFS REST API', () => {
       }
 
       await uut.connect(ctx)
+      // console.log('ctx.body: ', ctx.body)
+
+      assert.property(ctx.body, 'success')
+      assert.equal(ctx.body.success, true)
+    })
+  })
+
+  describe('#POST /getPaymentAddr', () => {
+    it('should return 422 status on biz logic error', async () => {
+      try {
+        // Force an error
+        sandbox.stub(uut.useCases.ipfs, 'getPaymentAddr').rejects(new Error('test error'))
+
+        ctx.request.body = {
+          sizeInMb: 1
+        }
+
+        await uut.getPaymentAddr(ctx)
+
+        assert.fail('Unexpected result')
+      } catch (err) {
+        assert.equal(err.status, 422)
+        assert.include(err.message, 'test error')
+      }
+    })
+    it('should return 501 if bchPayment is not enabled', async () => {
+      try {
+        // Force an error
+        uut.config.enableBchPayments = false
+        sandbox.stub(uut.useCases.ipfs, 'getPaymentAddr').rejects(new Error('test error'))
+
+        ctx.request.body = {
+          sizeInMb: 1
+        }
+
+        await uut.getPaymentAddr(ctx)
+
+        assert.fail('Unexpected result')
+      } catch (err) {
+        assert.equal(err.status, 501)
+        assert.include(err.message, 'BCH payments are not enabled in this instance of ipfs-file-stager.')
+      }
+    })
+
+    it('should return 200 status on success', async () => {
+      // Mock dependencies
+      sandbox.stub(uut.useCases.ipfs, 'getPaymentAddr').resolves({ success: true })
+
+      ctx.request.body = {
+        sizeInMb: 1
+      }
+
+      await uut.getPaymentAddr(ctx)
+      // console.log('ctx.body: ', ctx.body)
+
+      assert.property(ctx.body, 'success')
+      assert.equal(ctx.body.success, true)
+    })
+  })
+
+  describe('#POST /getBchCost', () => {
+    it('should return 422 status on biz logic error', async () => {
+      try {
+        // Force an error
+        sandbox.stub(uut.useCases.ipfs, 'getBchCost').rejects(new Error('test error'))
+
+        ctx.request.body = {
+          sizeInMb: 1
+        }
+
+        await uut.getBchCost(ctx)
+
+        assert.fail('Unexpected result')
+      } catch (err) {
+        assert.equal(err.status, 422)
+        assert.include(err.message, 'test error')
+      }
+    })
+
+    it('should return 200 status on success', async () => {
+      // Mock dependencies
+      sandbox.stub(uut.useCases.ipfs, 'getBchCost').resolves({ success: true })
+
+      ctx.request.body = {
+        sizeInMb: 1
+      }
+
+      await uut.getBchCost(ctx)
       // console.log('ctx.body: ', ctx.body)
 
       assert.property(ctx.body, 'success')

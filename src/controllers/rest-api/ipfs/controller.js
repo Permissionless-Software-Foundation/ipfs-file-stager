@@ -40,6 +40,7 @@ class IpfsRESTControllerLib {
     this.stat = this.stat.bind(this)
     this.getPaymentAddr = this.getPaymentAddr.bind(this)
     this.createPinClaim = this.createPinClaim.bind(this)
+    this.getBchCost = this.getBchCost.bind(this)
   }
 
   /**
@@ -216,6 +217,30 @@ class IpfsRESTControllerLib {
       ctx.body = result
     } catch (err) {
       console.error('Error in ipfs/controller.js/createPinClaim(): ', err)
+      this.handleError(ctx, err)
+    }
+  }
+
+  /**
+   * @api {post} /ipfs/getBchCost Get the cost in BCH to write a file to the network.
+   * @apiPermission public
+   * @apiName getBchCost
+   * @apiGroup REST BCH
+   * @apiDescription Get the cost in BCH to write a file to the network.
+   *
+   * @apiExample Example usage:
+   * curl -H "Content-Type: application/json" -X POST -d '{ "sizeInMb": 1 }' localhost:5040/ipfs/getBchCost
+   *
+   */
+  async getBchCost (ctx) {
+    try {
+      const { sizeInMb } = ctx.request.body
+
+      const result = await this.useCases.ipfs.getBchCost({ sizeInMb })
+
+      ctx.body = result
+    } catch (err) {
+      console.error('Error in ipfs/controller.js/getBchCost(): ', err)
       this.handleError(ctx, err)
     }
   }

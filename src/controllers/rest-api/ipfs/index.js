@@ -60,6 +60,7 @@ class IpfsRouter {
     this.router.get('/stat/:cid', this.ipfsRESTController.stat)
     this.router.post('/getPaymentAddr', this.ipfsRESTController.getPaymentAddr)
     this.router.post('/createPinClaim', this.ipfsRESTController.createPinClaim)
+    this.router.post('/getBchCost', this.ipfsRESTController.getBchCost)
 
     // Attach the Controller routes to the Koa app.
     app.use(this.router.routes())

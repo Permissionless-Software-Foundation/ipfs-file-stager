@@ -36,6 +36,7 @@ class IpfsUseCases {
     this.clearStagedFiles = this.clearStagedFiles.bind(this)
     this.getPaymentAddr = this.getPaymentAddr.bind(this)
     this.createPinClaim = this.createPinClaim.bind(this)
+    this.getBchCost = this.getBchCost.bind(this)
 
     // State
     this.cids = []
@@ -141,36 +142,7 @@ class IpfsUseCases {
     try {
       const { sizeInMb } = inObj
 
-      const wallet = this.adapters.wallet.bchWallet
-      const bchjs = wallet.bchjs
-
-      // Get the cost in PSF tokens to write 1MB to the network.
-      const writePrice = await wallet.getPsfWritePrice()
-      console.log('ipfs-use-cases.js/getPaymentAddr() writePrice: ', writePrice)
-
-      // Get the current cost of PSF tokens in BCH.
-      const response = await this.axios.get('https://psfoundation.cash/price')
-      const usdPerBch = response.data.usdPerBCH
-      const usdPerToken = response.data.usdPerToken
-      console.log('usdPerBch: ', usdPerBch)
-      console.log('usdPerToken: ', usdPerToken)
-      const bchPerToken = bchjs.Util.floor8(usdPerToken / usdPerBch)
-      console.log('ipfs-use-cases.js/getPaymentAddr() bchPerToken: ', bchPerToken)
-
-      // Round up to 1MB if the file is less than 1MB.
-      let effectiveSize = sizeInMb
-      if (effectiveSize < 1) {
-        effectiveSize = 1
-      }
-
-      // Cost to user in BCH will be the price to write the file plus 10% markup.
-      const psfCost = effectiveSize * writePrice
-      console.log('psfCost: ', psfCost)
-
-      // Expected transaction fees in BCH.
-      const txFees = 0.00004
-
-      const bchCost = bchjs.Util.floor8(psfCost * bchPerToken * (1 + this.config.markup) + txFees)
+      const bchCost = await this.getBchCost({ sizeInMb })
       console.log('bchCost: ', bchCost)
       // const result = await this.adapters.wallet.getPaymentAddr()
       // return result
@@ -180,6 +152,12 @@ class IpfsUseCases {
       console.log(`Got address ${cashAddress} from hdIndex ${hdIndex}.`)
 
       const now = new Date()
+
+      // Round up to 1MB if the file is less than 1MB.
+      let effectiveSize = sizeInMb
+      if (effectiveSize < 1) {
+        effectiveSize = 1
+      }
 
       // Create a new BCH payment database model.
       const paymentModel = {
@@ -262,6 +240,50 @@ class IpfsUseCases {
       return result
     } catch (err) {
       console.error('Error in ipfs-use-cases.js/createPinClaim(): ', err)
+      throw err
+    }
+  }
+
+  async getBchCost (inObj = {}) {
+    try {
+      const { sizeInMb } = inObj
+
+      const wallet = this.adapters.wallet.bchWallet
+      const bchjs = wallet.bchjs
+
+      // Get the cost in PSF tokens to write 1MB to the network.
+      const writePrice = await wallet.getPsfWritePrice()
+      console.log('ipfs-use-cases.js/getPaymentAddr() writePrice: ', writePrice)
+
+      // Get the current cost of PSF tokens in BCH.
+      const response = await this.axios.get('https://psfoundation.cash/price')
+      const usdPerBch = response.data.usdPerBCH
+      const usdPerToken = response.data.usdPerToken
+      console.log('usdPerBch: ', usdPerBch)
+      console.log('usdPerToken: ', usdPerToken)
+      const bchPerToken = bchjs.Util.floor8(usdPerToken / usdPerBch)
+      console.log('ipfs-use-cases.js/getPaymentAddr() bchPerToken: ', bchPerToken)
+
+      // Round up to 1MB if the file is less than 1MB.
+      let effectiveSize = sizeInMb
+      if (effectiveSize < 1) {
+        effectiveSize = 1
+      }
+
+      // Cost to user in BCH will be the price to write the file plus 10% markup.
+      const psfCost = effectiveSize * writePrice
+      console.log('psfCost: ', psfCost)
+
+      // Expected transaction fees in BCH.
+      const txFees = 0.00004
+
+      const bchCost = bchjs.Util.floor8(psfCost * bchPerToken * (1 + this.config.markup) + txFees)
+      console.log('bchCost: ', bchCost)
+      // const result = await this.adapters.wallet.getPaymentAddr()
+      // return result
+      return bchCost
+    } catch (err) {
+      console.error('Error in ipfs-use-cases.js/getBchCost(): ', err)
       throw err
     }
   }
