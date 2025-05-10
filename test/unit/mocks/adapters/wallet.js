@@ -27,6 +27,9 @@ class MockBchWallet {
         this.getUtxos = async () => { };
         this.getBalance = async () => { };
         this.listTokens = async () => { };
+        this.getPsfWritePrice = async () => {
+            return 1;
+        };
         this.getTxData = async () => {
             return [{
                     tokenTicker: 'TROUT'

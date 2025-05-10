@@ -26,7 +26,7 @@ class UserUseCaseMock {
 
   async authUser(login, passwd) {
     return {
-      generateToken: () => {}
+      generateToken: () => { }
     }
   }
 }
@@ -49,6 +49,17 @@ class UsageUseCaseMock {
   }
 }
 
+
+class IpfsUseCaseMock {
+  async getPaymentAddr() {
+    return {}
+  }
+
+  async getBchCost() {
+    return {}
+  }
+}
+
 class UseCasesMock {
   constuctor(localConfig = {}) {
     // this.user = new UserUseCaseMock(localConfig)
@@ -56,6 +67,8 @@ class UseCasesMock {
 
   user = new UserUseCaseMock()
   usage = new UsageUseCaseMock()
+  ipfs = new IpfsUseCaseMock()
 }
+
 
 export default UseCasesMock;
