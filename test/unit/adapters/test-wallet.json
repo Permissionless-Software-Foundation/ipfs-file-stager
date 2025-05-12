@@ -1,13 +1,13 @@
 {
   "wallet": {
-    "privateKey": "L3nnHxwe4YiqAJeVvK3wVGevkxFb11Pez5wMPVmxGNAPBJTvs6DN",
-    "publicKey": "03322a2cf33352e3469fc0090474566f7c0281d7ab8c58caae8ef9b15edb7af2c5",
-    "mnemonic": "cupboard holiday stool fog rare general mix rubber grape annual draw include",
-    "cashAddress": "bitcoincash:qzstcnlmfywxsrqzgvhnlcmrd5vknyx5ycrmt9hj7t",
-    "address": "bitcoincash:qzstcnlmfywxsrqzgvhnlcmrd5vknyx5ycrmt9hj7t",
-    "legacyAddress": "1FethsSqfu14BVbgcD4hDmk72QonzqHxnG",
+    "privateKey": "L2C9yyeynJoAuJSAcAA4YbQiPK248m7PFmKP6pESp7pVsALRgVEw",
+    "publicKey": "03b678b5c9c26bd92bc00d50941e9d48f957aaf1095c5d78185e3220796c509b6a",
+    "mnemonic": "diagram arm original wedding ivory field boat control mask educate equip join",
+    "cashAddress": "bitcoincash:qp6w823q6rfz45apyg4j24p2dfp9vcqcnqyqdkavf2",
+    "address": "bitcoincash:qp6w823q6rfz45apyg4j24p2dfp9vcqcnqyqdkavf2",
+    "legacyAddress": "1Bf47fV1Fe1FAHnMxFHFVR3zaU92ZSvdjN",
     "hdPath": "m/44'/245'/0'/0/0",
-    "slpAddress": "simpleledger:qzstcnlmfywxsrqzgvhnlcmrd5vknyx5yc0qq7zjq4",
+    "slpAddress": "simpleledger:qp6w823q6rfz45apyg4j24p2dfp9vcqcnqgmxdgvh5",
     "nextAddress": 1
   }
 }

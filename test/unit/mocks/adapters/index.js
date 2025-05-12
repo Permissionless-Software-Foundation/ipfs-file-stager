@@ -9,6 +9,11 @@ class IpfsAdapter {
     this.ipfs = {
       files: {
         stat: () => {}
+      },
+      fs:{
+        stat: () => { return { fileSize: 100 }},
+        addFile: () => { return 'result cid'},
+        rm: () => { return true}
       }
     }
   }

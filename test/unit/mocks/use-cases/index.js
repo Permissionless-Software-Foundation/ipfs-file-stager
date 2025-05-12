@@ -58,6 +58,21 @@ class IpfsUseCaseMock {
   async getBchCost() {
     return {}
   }
+
+  async clearStagedFiles() {
+    return {}
+  }
+
+  async upload() {
+    return {}
+  }
+
+  async stat() {
+    return {}
+  }
+  async createPinClaim() {
+    return {}
+  }
 }
 
 class UseCasesMock {

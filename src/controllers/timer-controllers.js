@@ -82,6 +82,7 @@ class TimerControllers {
   clearStagedFiles () {
     try {
       this.useCases.ipfs.clearStagedFiles()
+      return true
     } catch (err) {
       console.error('Error in time-controller.js/clearStagedFiles(): ', err)
 

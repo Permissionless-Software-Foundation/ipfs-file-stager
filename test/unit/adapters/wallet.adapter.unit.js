@@ -156,8 +156,11 @@ describe('#wallet', () => {
       // console.log('walletData: ', walletData)
 
       // Force desired code path
+      const originalConfig = uut.config.walletInterface
       uut.config.walletInterface = 'web2'
       const result = await uut.instanceWalletWithoutInitialization(walletData)
+
+      uut.config.walletInterface = originalConfig
 
       // console.log('result: ', result)
       assert.property(result, 'walletInfoPromise')
@@ -338,7 +341,5 @@ const deleteFile = (filepath) => {
   try {
     // Delete state if exist
     fs.unlinkSync(filepath)
-  } catch (err) {
-    // console.error('Error trying to delete file: ', err)
-  }
+  } catch (err) { /** */ }
 }

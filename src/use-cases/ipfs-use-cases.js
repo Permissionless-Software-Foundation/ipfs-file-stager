@@ -58,7 +58,7 @@ class IpfsUseCases {
         throw new Error(`File exceeds max file size of ${maxFileSize}`)
       }
 
-      const readStream = fs.createReadStream(file.filepath)
+      const readStream = this.fs.createReadStream(file.filepath)
       // console.log('readStream: ', readStream)
 
       const fileObj = {
@@ -122,7 +122,7 @@ class IpfsUseCases {
     // Get a list of CIDs to purge from the system.
     const now = new Date()
     const cutoff = new Date(now.getTime() - 24 * 60 * 60 * 1000)
-    const cidsToPurge = this.cids.filter(cid => new Date(cid.timestamp) > cutoff)
+    const cidsToPurge = this.cids.filter(cid => new Date(cid.timestamp) < cutoff)
 
     for (let i = 0; i < cidsToPurge.length; i++) {
       const cid = cidsToPurge[i]
@@ -131,10 +131,16 @@ class IpfsUseCases {
       try {
         await this.adapters.ipfs.ipfs.fs.rm(cid.cid)
         console.log(`Successfully deleted CID ${cid.cid} from the system.`)
+        // remove deleted cid from this.cids
+        const index = this.cids.findIndex(val => cid.cid === val.cid)
+        if (index !== -1) {
+          this.cids.splice(index, 1)
+        }
       } catch (err) {
         console.error(`Error trying to delete CID ${cid.cid}: `, err)
       }
     }
+    return true
   }
 
   // Generate a new payment model. Calculate the cost to write the data, in BCH.
