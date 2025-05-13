@@ -337,4 +337,78 @@ describe('#IPFS REST API', () => {
       assert.property(ctx.body, 'thisNode')
     })
   })
+  describe('#upload', () => {
+    it('should return 422 status on biz logic error', async () => {
+      try {
+        ctx.request.body = {}
+
+        await uut.upload(ctx)
+
+        assert.fail('Unexpected result')
+      } catch (err) {
+        // console.log('err: ', err)
+        assert.equal(err.status, 422)
+        assert.include(err.message, 'Cannot read')
+      }
+    })
+
+    it('should return 200 status on success', async () => {
+      // Mock dependencies
+      sandbox.stub(uut.useCases.ipfs, 'upload').resolves({ cid: 'uploaded cid' })
+
+      ctx.request.files = {}
+
+      await uut.upload(ctx)
+
+      assert.property(ctx.body, 'cid')
+    })
+  })
+  describe('#stat', () => {
+    it('should return 422 status on biz logic error', async () => {
+      try {
+        await uut.stat(ctx)
+
+        assert.fail('Unexpected result')
+      } catch (err) {
+        // console.log('err: ', err)
+        assert.equal(err.status, 422)
+        assert.include(err.message, 'Cannot read')
+      }
+    })
+
+    it('should return 200 status on success', async () => {
+      // Mock dependencies
+      sandbox.stub(uut.useCases.ipfs, 'stat').resolves({ fileSize: 1 })
+      ctx.params = {
+        cid: 'cid'
+      }
+
+      await uut.stat(ctx)
+
+      assert.property(ctx.body, 'fileSize')
+    })
+  })
+  describe('#createPinClaim', () => {
+    it('should return 422 status on biz logic error', async () => {
+      try {
+        await uut.createPinClaim(ctx)
+
+        assert.fail('Unexpected result')
+      } catch (err) {
+        // console.log('err: ', err)
+        assert.equal(err.status, 422)
+        assert.include(err.message, 'Cannot')
+      }
+    })
+
+    it('should return 200 status on success', async () => {
+      // Mock dependencies
+      sandbox.stub(uut.useCases.ipfs, 'createPinClaim').resolves({ success: true })
+      ctx.request.body = {}
+
+      await uut.createPinClaim(ctx)
+
+      assert.property(ctx.body, 'success')
+    })
+  })
 })

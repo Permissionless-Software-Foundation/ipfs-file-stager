@@ -36,6 +36,12 @@ class MockBchWallet {
                 }];
         };
         this.optimize = async () => { };
+
+        this.ar = {
+            sendTx: async () => {
+                return 'txid'
+            }
+        }
         // Environment variable is used by wallet-balance.unit.js to force an error.
         if (process.env.NO_UTXO) {
             this.utxos = {};
