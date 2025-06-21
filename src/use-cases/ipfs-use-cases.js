@@ -131,13 +131,14 @@ class IpfsUseCases {
       try {
         await this.adapters.ipfs.ipfs.fs.rm(cid.cid)
         console.log(`Successfully deleted CID ${cid.cid} from the system.`)
-        // remove deleted cid from this.cids
-        const index = this.cids.findIndex(val => cid.cid === val.cid)
-        if (index !== -1) {
-          this.cids.splice(index, 1)
-        }
       } catch (err) {
         console.error(`Error trying to delete CID ${cid.cid}: `, err)
+      }
+
+      // remove deleted cid from this.cids
+      const index = this.cids.findIndex(val => cid.cid === val.cid)
+      if (index !== -1) {
+        this.cids.splice(index, 1)
       }
     }
     return true

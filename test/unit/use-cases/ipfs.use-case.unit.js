@@ -142,7 +142,7 @@ describe('#ipfs-use-case', () => {
 
       assert.isTrue(result)
       assert.isTrue(spy.called)
-      assert.equal(uut.cids.length, 1, 'CID should not be deleted on ipfs rm error')
+      assert.equal(uut.cids.length, 0, 'CID should be deleted even on ipfs rm error')
     })
   })
   describe('#getPaymentAddr', () => {
