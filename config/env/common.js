@@ -156,5 +156,11 @@ export default {
 
   // BCH Payments feature. Disabled by default.
   enableBchPayments: process.env.ENABLE_BCH_PAYMENTS ? true : false,
-  markup: 0.1 // 10% markup for BCH payments.
+  markup: 0.1, // 10% markup for BCH payments.
+
+  // Account Configuration
+  disableNewAccounts: process.env.DISABLE_NEW_ACCOUNTS ? true : false,
+
+  // Admin password
+  adminPassword: process.env.ADMIN_PASSWORD
 }
