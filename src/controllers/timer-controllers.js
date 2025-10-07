@@ -26,6 +26,7 @@ class TimerControllers {
     // Constants
     this.cleanUsageInterval = 60000 * 60 // 1 hour
     this.backupUsageInterval = 60000 * 10 // 10 minutes
+    this.updateWritePriceInterval = 60000 * 60 // 1 hour
 
     // Encapsulate dependencies
     this.config = config
@@ -33,9 +34,8 @@ class TimerControllers {
     // Bind 'this' object to all subfunctions.
     this.cleanUsage = this.cleanUsage.bind(this)
     this.clearStagedFiles = this.clearStagedFiles.bind(this)
-
-    // this.startTimers()
     this.backupUsage = this.backupUsage.bind(this)
+    this.updateWritePrice = this.updateWritePrice.bind(this)
   }
 
   // Start all the time-based controllers.
@@ -45,6 +45,7 @@ class TimerControllers {
     this.clearStagedFilesHandle = setInterval(this.clearStagedFiles, 60000 * 63) // 1 hour
     this.cleanUsageHandle = setInterval(this.cleanUsage, this.cleanUsageInterval)
     this.backupUsageHandle = setInterval(this.backupUsage, this.backupUsageInterval)
+    this.updateWritePriceHandle = setInterval(this.updateWritePrice, this.updateWritePriceInterval)
 
     return true
   }
@@ -52,6 +53,7 @@ class TimerControllers {
   stopTimers () {
     clearInterval(this.cleanUsageHandle)
     clearInterval(this.backupUsageHandle)
+    clearInterval(this.updateWritePriceHandle)
   }
 
   // Clean the usage state so that stats reflect the last 24 hours.
@@ -109,6 +111,22 @@ class TimerControllers {
       return true
     } catch (err) {
       console.error('Error in time-controller.js/clearStagedFiles(): ', err)
+
+      // Note: Do not throw an error. This is a top-level function.
+      return false
+    }
+  }
+
+  // Update the PSF write price to keep the cache fresh. This way users do not get delayed API calls.
+  async updateWritePrice () {
+    try {
+      const wallet = this.adapters.wallet.bchWallet
+
+      // Get the cost in PSF tokens to write 1MB to the network.
+      const writePrice = await wallet.getPsfWritePrice()
+      console.log('Write Price cache updated. writePrice: ', writePrice)
+    } catch (err) {
+      console.error('Error in time-controller.js/updateWritePrice(): ', err)
 
       // Note: Do not throw an error. This is a top-level function.
       return false
