@@ -32,11 +32,15 @@ describe('#adapters', () => {
       sandbox.stub(uut.fullStackJwt, 'getJWT').resolves()
       sandbox.stub(uut.fullStackJwt, 'instanceBchjs').resolves()
       sandbox.stub(uut.ipfs, 'start').resolves()
+      sandbox.stub(uut.wallet, 'openWallet').resolves({})
+      sandbox.stub(uut.wallet, 'instanceWallet').resolves({})
+      uut.wallet.bchWallet = { bchjs: { Util: { floor8: () => 0 } } }
 
       const result = await uut.start()
 
       assert.equal(result, true)
     })
+
     it('should not start ipfs on test enviroment', async () => {
       // Mock dependencies
       uut.config.getJwtAtStartup = true
@@ -46,6 +50,9 @@ describe('#adapters', () => {
       sandbox.stub(uut.fullStackJwt, 'getJWT').resolves()
       sandbox.stub(uut.fullStackJwt, 'instanceBchjs').resolves()
       const ipfsSpy = sandbox.stub(uut.ipfs, 'start').resolves(null)
+      sandbox.stub(uut.wallet, 'openWallet').resolves({})
+      sandbox.stub(uut.wallet, 'instanceWallet').resolves({})
+      uut.wallet.bchWallet = { bchjs: { Util: { floor8: () => 0 } } }
 
       const result = await uut.start()
 
@@ -58,7 +65,8 @@ describe('#adapters', () => {
         // Force an error
         uut.config.getJwtAtStartup = false
         uut.config.env = 'dev'
-        sandbox.stub(uut.ipfs, 'start').rejects(new Error('test error'))
+        // sandbox.stub(uut.ipfs, 'start').rejects(new Error('test error'))
+        sandbox.stub(uut.wallet, 'openWallet').rejects(new Error('test error'))
 
         await uut.start()
 

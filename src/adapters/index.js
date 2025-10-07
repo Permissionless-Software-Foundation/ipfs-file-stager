@@ -74,7 +74,7 @@ class Adapters {
 
       return true
     } catch (err) {
-      console.error('Error in adapters/index.js/start()')
+      console.error('Error in adapters/index.js/start()', err)
       throw err
     }
   }
