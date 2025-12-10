@@ -101,6 +101,25 @@ describe('#Timer-Controllers', () => {
 
       assert.equal(result, true)
     })
+    it('should return false on error', async () => {
+      sandbox.stub(uut.useCases.ipfs, 'clearStagedFiles').throws(new Error('test error'))
+      const result = await uut.clearStagedFiles()
+
+      assert.equal(result, false)
+    })
+  })
+
+  describe('#updateWritePrice', () => {
+    it('should update the write price', async () => {
+      const result = await uut.updateWritePrice()
+      assert.equal(result, true)
+    })
+    it('should return false on error', async () => {
+      sandbox.stub(uut.adapters.wallet.bchWallet, 'getPsfWritePrice').throws(new Error('test error'))
+      const result = await uut.updateWritePrice()
+
+      assert.equal(result, false)
+    })
   })
 
   describe('#backupUsage', () => {

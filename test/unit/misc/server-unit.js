@@ -30,7 +30,7 @@ describe('#server', () => {
       sandbox.stub(uut.adminLib, 'createSystemUser').resolves(true)
       sandbox.stub(uut.controllers, 'attachControllers').resolves()
       uut.config.env = 'dev'
-      uut.config.port = 5040
+      uut.config.port = uut.config.port + 1 // prevent port conflict with e2e server
       const result = await uut.startServer()
       // console.log('result: ', result)
 

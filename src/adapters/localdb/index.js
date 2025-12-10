@@ -6,6 +6,7 @@
 import Users from './models/users.js'
 import BchPayment from './models/bch-payment.js'
 import Usage from './models/usage.js'
+import LocalPins from './models/local-pins.js'
 
 class LocalDB {
   constructor () {
@@ -13,6 +14,7 @@ class LocalDB {
     this.Users = Users
     this.BchPayment = BchPayment
     this.Usage = Usage
+    this.LocalPins = LocalPins
   }
 }
 

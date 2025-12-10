@@ -125,6 +125,7 @@ class TimerControllers {
       // Get the cost in PSF tokens to write 1MB to the network.
       const writePrice = await wallet.getPsfWritePrice()
       console.log('Write Price cache updated. writePrice: ', writePrice)
+      return true
     } catch (err) {
       console.error('Error in time-controller.js/updateWritePrice(): ', err)
 

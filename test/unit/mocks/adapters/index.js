@@ -14,6 +14,12 @@ class IpfsAdapter {
         stat: () => { return { fileSize: 100 }},
         addFile: () => { return 'result cid'},
         rm: () => { return true}
+      },
+      pins: {
+        // Async iterator mock function
+        add: async function* () {
+          yield 'result cid'
+        }
       }
     }
   }
@@ -113,6 +119,36 @@ const localdb = {
       return {
         validatePassword: localdb.validatePassword
       }
+    }
+
+    async save () {
+      return {}
+    }
+
+    generateToken () {
+      return '123'
+    }
+
+    toJSON () {
+      return {}
+    }
+
+    async remove () {
+      return true
+    }
+
+    async validatePassword () {
+      return true
+    }
+    static async deleteMany(){
+      return true
+    }
+  },
+  LocalPins: class LocalPins {
+    static findById () {}
+    static find () {}
+    static findOne () {
+
     }
 
     async save () {

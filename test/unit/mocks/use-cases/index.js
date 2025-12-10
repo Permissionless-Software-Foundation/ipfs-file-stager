@@ -81,6 +81,9 @@ class IpfsUseCaseMock {
   async createPinClaim() {
     return {}
   }
+  async pinLocalFile() {
+    return {}
+  }
 }
 
 class UseCasesMock {
