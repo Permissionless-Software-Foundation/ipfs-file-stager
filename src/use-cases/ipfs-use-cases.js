@@ -263,7 +263,7 @@ class IpfsUseCases {
       console.log('ipfs-use-cases.js/getPaymentAddr() writePrice: ', writePrice)
 
       // Get the current cost of PSF tokens in BCH.
-      const response = await this.axios.get('https://psfoundation.cash/price')
+      const response = await this.axios.get(`${this.config.apiServer}/price/psf`)
       const usdPerBch = response.data.usdPerBCH
       const usdPerToken = response.data.usdPerToken
       console.log('usdPerBch: ', usdPerBch)
