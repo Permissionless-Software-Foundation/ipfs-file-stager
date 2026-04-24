@@ -33,7 +33,28 @@ describe('#IPFS-adapter', () => {
   })
 
   describe('#start', () => {
-    it('should return a promise that resolves into an instance of IPFS.', async () => {
+    it('should use CreateHeliaNode and assign ipfs when start succeeds', async () => {
+      const mockIpfs = {
+        stop: async () => {},
+        libp2p: { getMultiaddrs: () => [], peerId: 'fake-id' }
+      }
+      class FakeHelia {
+        async start () {
+          this.id = 'fake-id'
+          this.multiaddrs = ['/m']
+          return mockIpfs
+        }
+      }
+      const i = new IPFSLib({}, { CreateHeliaNode: FakeHelia })
+      const result = await i.start()
+      assert.equal(i.isReady, true)
+      assert.equal(i.id, 'fake-id')
+      assert.deepEqual(i.multiaddrs, ['/m'])
+      assert.strictEqual(i.ipfs, mockIpfs)
+      assert.strictEqual(result, mockIpfs)
+    })
+
+    it('should return a promise that resolves into an instance of IPFS (legacy hand-rolled start)', async () => {
       // Mock the heliaNode that gets created inside start()
       const mockIpfs = {
         libp2p: {

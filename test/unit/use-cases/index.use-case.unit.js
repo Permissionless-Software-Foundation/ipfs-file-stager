@@ -1,3 +1,4 @@
+/* eslint-env mocha */
 /*
   Unit tests for the index.js file that aggregates all use-cases.
 */
@@ -57,9 +58,14 @@ describe('#use-cases', () => {
       assert.equal(result, true)
     })
 
-    // it('should catch and throw errors', async () => {
-    //   // Force an error
-    //   sandbox.stub()
-    // })
+    it('should propagate if loadUsage rejects', async () => {
+      sandbox.stub(uut.usage, 'loadUsage').rejects(new Error('db unavailable'))
+      try {
+        await uut.start()
+        assert.fail('Unexpected code path')
+      } catch (err) {
+        assert.equal(err.message, 'db unavailable')
+      }
+    })
   })
 })

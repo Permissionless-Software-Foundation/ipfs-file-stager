@@ -37,6 +37,7 @@ class IpfsUseCases {
     this.getPaymentAddr = this.getPaymentAddr.bind(this)
     this.createPinClaim = this.createPinClaim.bind(this)
     this.getBchCost = this.getBchCost.bind(this)
+    this.generatePinClaim = this.generatePinClaim.bind(this)
 
     // State
     this.cids = []
@@ -247,6 +248,55 @@ class IpfsUseCases {
       return result
     } catch (err) {
       console.error('Error in ipfs-use-cases.js/createPinClaim(): ', err)
+      throw err
+    }
+  }
+
+  // Create a new Pin Claim after the payment has been validated by the x402 facilitators.
+  async generatePinClaim (inObj = {}) {
+    try {
+      const { cid, filename, fileSizeInMegabytes } = inObj
+
+      // validate the inputs
+      if (!cid || typeof cid !== 'string') {
+        throw new Error('CID is required')
+      }
+      if (!filename || typeof filename !== 'string') {
+        throw new Error('Filename is required')
+      }
+      if (!fileSizeInMegabytes || typeof fileSizeInMegabytes !== 'number') {
+        throw new Error('File size in megabytes is required')
+      }
+      // Generate payment address in order to record the payment in the database
+      // const { address } = await this.getPaymentAddr({ sizeInMb: fileSizeInMegabytes })
+      // const paymentModel = await this.adapters.localdb.BchPayment.findOne({ address })
+
+      const wallet = this.adapters.wallet.bchWallet
+      await wallet.initialize()
+      await wallet.utxos.initUtxoStore(wallet.walletInfo.slpAddress)
+
+      const psffpp = new this.PSFFPP({ wallet })
+      const pinObj = {
+        cid,
+        filename,
+        fileSizeInMegabytes
+      }
+      console.log('pinObj: ', pinObj)
+      const { pobTxid, claimTxid } = await psffpp.createPinClaim(pinObj)
+      console.log('Created Pin Claim: ', { pobTxid, claimTxid })
+
+      const result = {
+        success: true,
+        pobTxid,
+        claimTxid
+      }
+      // paymentModel.pobTxId = pobTxid
+      // paymentModel.claimTxId = claimTxid
+      // await paymentModel.save()
+
+      return result
+    } catch (err) {
+      console.error('Error in ipfs-use-cases.js/generatePinClaim(): ', err)
       throw err
     }
   }

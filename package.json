@@ -25,9 +25,17 @@
   },
   "repository": "Permissionless-Software-Foundation/ipfs-file-stager",
   "dependencies": {
-    "axios": "0.27.2",
+    "@coinbase/cdp-sdk": "1.45.0",
+    "@x402/axios": "2.6.0",
+    "@x402/core": "2.6.0",
+    "@x402/evm": "2.6.0",
+    "@x402/express": "2.6.0",
+    "@x402/extensions": "2.6.0",
+    "axios": "1.15.2",
     "bch-token-sweep": "2.2.1",
     "bcryptjs": "2.4.3",
+    "dotenv": "16.3.1",
+    "ethers": "6.13.5",
     "glob": "7.1.6",
     "helia-coord": "2.0.3",
     "jsonrpc-lite": "2.2.0",
@@ -37,6 +45,7 @@
     "koa": "2.13.1",
     "koa-body": "6.0.1",
     "koa-bodyparser": "4.3.0",
+    "koa-connect": "2.1.0",
     "koa-convert": "2.0.0",
     "koa-generic-session": "2.1.1",
     "koa-logger": "3.2.1",
@@ -67,7 +76,8 @@
     "semantic-release": "19.0.3",
     "sinon": "9.2.4",
     "standard": "17.0.0",
-    "uuid": "8.3.2"
+    "uuid": "8.3.2",
+    "viem": "2.21.0"
   },
   "release": {
     "publish": [
@@ -86,6 +96,20 @@
     "ignore": [
       "/test/unit/mocks/**/*.js"
     ]
+  },
+  "c8": {
+    "reporter": [
+      "text"
+    ],
+    "all": true,
+    "include": [
+      "bin/**",
+      "config/**",
+      "src/**"
+    ],
+    "check-coverage": true,
+    "statements": 100,
+    "lines": 100
   },
   "overrides": {
     "@multiformats/multiaddr-to-uri": "10.1.2",

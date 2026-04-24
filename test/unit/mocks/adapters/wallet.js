@@ -44,10 +44,13 @@ class MockBchWallet {
         }
         // Environment variable is used by wallet-balance.unit.js to force an error.
         if (process.env.NO_UTXO) {
-            this.utxos = {};
+            this.utxos = {
+                initUtxoStore: async () => {}
+            };
         }
         else {
             this.utxos = {
+                initUtxoStore: async () => {},
                 utxoStore: {
                     address: 'bitcoincash:qqetvdnlt0p8g27dr44cx7h057kpzly9xse9huc97z',
                     bchUtxos: [

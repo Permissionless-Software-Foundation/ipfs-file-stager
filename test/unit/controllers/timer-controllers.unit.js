@@ -101,6 +101,12 @@ describe('#Timer-Controllers', () => {
 
       assert.equal(result, true)
     })
+
+    it('should return false when clearStagedFiles throws', () => {
+      sandbox.stub(uut.useCases.ipfs, 'clearStagedFiles').throws(new Error('stager fail'))
+      const result = uut.clearStagedFiles()
+      assert.equal(result, false)
+    })
   })
 
   describe('#backupUsage', () => {
@@ -117,6 +123,28 @@ describe('#Timer-Controllers', () => {
       const result = await uut.backupUsage()
 
       assert.equal(result, false)
+    })
+
+    it('should return false when saveUsage throws after clear', async () => {
+      sandbox.stub(uut.useCases.usage, 'clearUsage').resolves()
+      sandbox.stub(uut.useCases.usage, 'saveUsage').rejects(new Error('save fail'))
+      const result = await uut.backupUsage()
+      assert.equal(result, false)
+    })
+  })
+
+  describe('#updateWritePrice', () => {
+    it('should update cache and return when getPsfWritePrice succeeds', async () => {
+      const wp = sandbox.stub(uut.adapters.wallet.bchWallet, 'getPsfWritePrice').resolves(0.5)
+      const res = await uut.updateWritePrice()
+      assert.isTrue(wp.called)
+      assert.isUndefined(res)
+    })
+
+    it('should return false on error', async () => {
+      sandbox.stub(uut.adapters.wallet.bchWallet, 'getPsfWritePrice').rejects(new Error('price fail'))
+      const res = await uut.updateWritePrice()
+      assert.equal(res, false)
     })
   })
 })

@@ -1,3 +1,4 @@
+/* eslint-env mocha */
 /*
 Unit tests for the use-cases/ipfs-use-case.js  business logic library.
 
@@ -261,6 +262,183 @@ describe('#ipfs-use-case', () => {
         assert.fail('Unexpected code path')
       } catch (error) {
         assert.include(error.message, 'insufficient balance')
+      }
+    })
+
+    it('should handle BchTokenSweep.populateObjectFromNetwork error', async () => {
+      uut.BchTokenSweep = class {
+        async populateObjectFromNetwork () { throw new Error('network fail') }
+        async sweepTo () { return 'hex' }
+      }
+      const inObj = {
+        address: 'bchaddress: 0000...',
+        cid: 'bafybeifx7yeb55armcsxwwitkymga5xf53dxiarykms3ygqic223w5sk3m',
+        filename: 'test.txt'
+      }
+      const saveSpy = sandbox.spy()
+      sandbox.stub(uut.adapters.localdb.BchPayment, 'findOne').resolves({ address: inObj.address, wif: 'wif', save: saveSpy, bchCost: 0, sizeInMb: 1 })
+      sandbox.stub(uut.adapters.wallet.bchWallet, 'getBalance').resolves(1)
+      try {
+        await uut.createPinClaim(inObj)
+        assert.fail('Unexpected code path')
+      } catch (error) {
+        assert.equal(error.message, 'network fail')
+      }
+    })
+
+    it('should handle BchTokenSweep.sweepTo error', async () => {
+      uut.BchTokenSweep = class {
+        async populateObjectFromNetwork () { return true }
+        async sweepTo () { throw new Error('sweep fail') }
+      }
+      const inObj = {
+        address: 'bchaddress: 0000...',
+        cid: 'bafybeifx7yeb55armcsxwwitkymga5xf53dxiarykms3ygqic223w5sk3m',
+        filename: 'test.txt'
+      }
+      const saveSpy = sandbox.spy()
+      sandbox.stub(uut.adapters.localdb.BchPayment, 'findOne').resolves({ address: inObj.address, wif: 'wif', save: saveSpy, bchCost: 0, sizeInMb: 1 })
+      sandbox.stub(uut.adapters.wallet.bchWallet, 'getBalance').resolves(1)
+      try {
+        await uut.createPinClaim(inObj)
+        assert.fail('Unexpected code path')
+      } catch (error) {
+        assert.equal(error.message, 'sweep fail')
+      }
+    })
+
+    it('should handle sendTx error', async () => {
+      const inObj = {
+        address: 'bchaddress: 0000...',
+        cid: 'bafybeifx7yeb55armcsxwwitkymga5xf53dxiarykms3ygqic223w5sk3m',
+        filename: 'test.txt'
+      }
+      const saveSpy = sandbox.spy()
+      sandbox.stub(uut.adapters.localdb.BchPayment, 'findOne').resolves({ address: inObj.address, wif: 'wif', save: saveSpy, bchCost: 0, sizeInMb: 1 })
+      sandbox.stub(uut.adapters.wallet.bchWallet, 'getBalance').resolves(1)
+      sandbox.stub(uut.adapters.wallet.bchWallet.ar, 'sendTx').rejects(new Error('send fail'))
+      try {
+        await uut.createPinClaim(inObj)
+        assert.fail('Unexpected code path')
+      } catch (error) {
+        assert.equal(error.message, 'send fail')
+      }
+    })
+
+    it('should handle PSFFPP.createPinClaim error', async () => {
+      uut.PSFFPP = class {
+        constructor () {
+          this.createPinClaim = async () => { throw new Error('psffpp fail') }
+        }
+      }
+      const inObj = {
+        address: 'bchaddress: 0000...',
+        cid: 'bafybeifx7yeb55armcsxwwitkymga5xf53dxiarykms3ygqic223w5sk3m',
+        filename: 'test.txt'
+      }
+      const saveSpy = sandbox.spy()
+      sandbox.stub(uut.adapters.localdb.BchPayment, 'findOne').resolves({ address: inObj.address, wif: 'wif', save: saveSpy, bchCost: 0, sizeInMb: 1 })
+      sandbox.stub(uut.adapters.wallet.bchWallet, 'getBalance').resolves(1)
+      try {
+        await uut.createPinClaim(inObj)
+        assert.fail('Unexpected code path')
+      } catch (error) {
+        assert.equal(error.message, 'psffpp fail')
+      }
+    })
+
+    it('should handle payment model save error', async () => {
+      const inObj = {
+        address: 'bchaddress: 0000...',
+        cid: 'bafybeifx7yeb55armcsxwwitkymga5xf53dxiarykms3ygqic223w5sk3m',
+        filename: 'test.txt'
+      }
+      const saveStub = sandbox.stub().rejects(new Error('save fail'))
+      sandbox.stub(uut.adapters.localdb.BchPayment, 'findOne').resolves({ address: inObj.address, wif: 'wif', save: saveStub, bchCost: 0, sizeInMb: 1 })
+      sandbox.stub(uut.adapters.wallet.bchWallet, 'getBalance').resolves(1)
+      try {
+        await uut.createPinClaim(inObj)
+        assert.fail('Unexpected code path')
+      } catch (error) {
+        assert.equal(error.message, 'save fail')
+      }
+    })
+  })
+
+  describe('#generatePinClaim', () => {
+    it('should create pin claim after wallet init', async () => {
+      const inObj = {
+        cid: 'bafybeifx7yeb55armcsxwwitkymga5xf53dxiarykms3ygqic223w5sk3m',
+        filename: 'x402.txt',
+        fileSizeInMegabytes: 1
+      }
+      const result = await uut.generatePinClaim(inObj)
+      assert.isObject(result)
+      assert.propertyVal(result, 'success', true)
+      assert.equal(result.pobTxid, 'pob-txid')
+      assert.equal(result.claimTxid, 'claim-txid')
+    })
+
+    it('should handle error from createPinClaim', async () => {
+      uut.PSFFPP = class {
+        constructor () {
+          this.createPinClaim = async () => { throw new Error('gen fail') }
+        }
+      }
+      try {
+        await uut.generatePinClaim({
+          cid: 'bafybeifx7yeb55armcsxwwitkymga5xf53dxiarykms3ygqic223w5sk3m',
+          filename: 'x402.txt',
+          fileSizeInMegabytes: 1
+        })
+        assert.fail('Unexpected code path')
+      } catch (error) {
+        assert.equal(error.message, 'gen fail')
+      }
+    })
+
+    it('should require a string cid', async () => {
+      for (const bad of [undefined, '', 123, {}]) {
+        try {
+          await uut.generatePinClaim({
+            cid: bad,
+            filename: 'x.txt',
+            fileSizeInMegabytes: 1
+          })
+          assert.fail('expected throw')
+        } catch (e) {
+          assert.equal(e.message, 'CID is required')
+        }
+      }
+    })
+
+    it('should require a string filename', async () => {
+      for (const bad of [undefined, '', 123]) {
+        try {
+          await uut.generatePinClaim({
+            cid: 'bafybeifx7yeb55armcsxwwitkymga5xf53dxiarykms3ygqic223w5sk3m',
+            filename: bad,
+            fileSizeInMegabytes: 1
+          })
+          assert.fail('expected throw')
+        } catch (e) {
+          assert.equal(e.message, 'Filename is required')
+        }
+      }
+    })
+
+    it('should require a positive number fileSizeInMegabytes', async () => {
+      for (const bad of [undefined, 0, '1', null, []]) {
+        try {
+          await uut.generatePinClaim({
+            cid: 'bafybeifx7yeb55armcsxwwitkymga5xf53dxiarykms3ygqic223w5sk3m',
+            filename: 'x.txt',
+            fileSizeInMegabytes: bad
+          })
+          assert.fail('expected throw')
+        } catch (e) {
+          assert.equal(e.message, 'File size in megabytes is required')
+        }
       }
     })
   })

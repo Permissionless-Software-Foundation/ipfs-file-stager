@@ -40,6 +40,7 @@ class IpfsRESTControllerLib {
     this.stat = this.stat.bind(this)
     this.getPaymentAddr = this.getPaymentAddr.bind(this)
     this.createPinClaim = this.createPinClaim.bind(this)
+    this.generatePinClaim = this.generatePinClaim.bind(this)
     this.getBchCost = this.getBchCost.bind(this)
   }
 
@@ -352,6 +353,32 @@ class IpfsRESTControllerLib {
       ctx.body = result
     } catch (err) {
       console.error('Error in ipfs/controller.js/createPinClaim(): ', err)
+      this.handleError(ctx, err)
+    }
+  }
+
+  /**
+   * @api {post} /ipfs/generatePinClaim Generate a Pin Claim for a file.
+   * @apiPermission public
+   * @apiName generatePinClaim
+   * @apiGroup REST BCH
+   * @apiDescription Generate a Pin Claim for a file.
+   *
+   * @apiExample Example usage:
+   * curl -H "Content-Type: application/json" -X POST -d '{ "fileSizeInMegabytes": 1, "cid": "bafybeidhiave6yci6gih6ixv5dp63p2qsgfxei4fwg77fov45qezewlpgq", "filename": "test.txt" }' localhost:5040/ipfs/generatePinClaim
+   */
+  async generatePinClaim (ctx) {
+    try {
+      const { fileSizeInMegabytes, cid, filename } = ctx.request.body
+      console.log('fileSizeInMegabytes: ', fileSizeInMegabytes)
+      console.log('cid: ', cid)
+      console.log('filename: ', filename)
+
+      const result = await this.useCases.ipfs.generatePinClaim({ fileSizeInMegabytes, cid, filename })
+
+      ctx.body = result
+    } catch (err) {
+      console.error('Error in ipfs/controller.js/generatePinClaim(): ', err)
       this.handleError(ctx, err)
     }
   }
