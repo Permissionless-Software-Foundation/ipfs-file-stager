@@ -1,3 +1,5 @@
+import 'dotenv/config'
+
 import common from './env/common.js'
 
 import development from './env/development.js'

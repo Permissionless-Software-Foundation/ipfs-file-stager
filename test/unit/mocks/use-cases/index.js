@@ -81,6 +81,10 @@ class IpfsUseCaseMock {
   async createPinClaim() {
     return {}
   }
+
+  async generatePinClaim() {
+    return {}
+  }
 }
 
 class UseCasesMock {

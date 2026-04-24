@@ -25,6 +25,67 @@ const ipfsCoordName = process.env.COORD_NAME
   ? process.env.COORD_NAME
   : 'ipfs-bch-wallet-service'
 
+// x402 (same env pattern as psf-bch-api-base)
+const normalizeBoolean = (value, defaultValue) => {
+  if (value === undefined || value === null || value === '') return defaultValue
+  const normalized = String(value).trim().toLowerCase()
+  if (['false', '0', 'no', 'off'].includes(normalized)) return false
+  if (['true', '1', 'yes', 'on'].includes(normalized)) return true
+  return defaultValue
+}
+
+const parsedX402Price = Number(process.env.X402_PRICE_USDC)
+const x402PriceUSDC = Number.isFinite(parsedX402Price) && parsedX402Price > 0 ? parsedX402Price : 0.1
+
+function toV2Caip2Network (raw) {
+  const s = String(raw ?? '').trim()
+  if (!s) return 'eip155:8453'
+  const lower = s.toLowerCase()
+  if (lower === 'base' || lower === 'eip155:8453') return 'eip155:8453'
+  if (lower === 'base-sepolia' || lower === 'eip155:84532') return 'eip155:84532'
+  if (lower.startsWith('eip155:')) return s
+  return s
+}
+
+const x402NetworkRaw =
+  process.env.x402_NETWORK ||
+  process.env.X402_NETWORK ||
+  'eip155:8453'
+const x402Network = toV2Caip2Network(x402NetworkRaw)
+
+const primaryFacilitatorRaw = (process.env.PRIMARY_FACILITATOR || 'cdp').trim().toLowerCase()
+const x402PrimaryKeys = new Set(['cdp', 'dexter', 'payai'])
+const primaryFacilitator = x402PrimaryKeys.has(primaryFacilitatorRaw)
+  ? primaryFacilitatorRaw
+  : 'cdp'
+
+function resolveX402FacilitatorUrl () {
+  const explicit = (process.env.x402_FACILITATOR_URL || '').trim()
+  if (explicit) return explicit.replace(/\/$/, '')
+
+  if (primaryFacilitator === 'dexter') return 'https://x402.dexter.cash'
+  if (primaryFacilitator === 'payai') {
+    return (process.env.PAYAI_FACILITATOR_URL || 'https://facilitator.payai.network')
+      .trim()
+      .replace(/\/$/, '')
+  }
+  return 'https://api.cdp.coinbase.com/platform/v2/x402'
+}
+
+const x402Defaults = {
+  // Default off so existing deployments work without SERVER_BASE_ADDRESS
+  enabled: normalizeBoolean(process.env.X402_ENABLED, false),
+  bazaarEnabled: normalizeBoolean(process.env.X402_BAZAAR_ENABLED, true),
+  facilitatorUrl: resolveX402FacilitatorUrl(),
+  serverAddress: (process.env.SERVER_BASE_ADDRESS || '').trim(),
+  facilitatorKeyId: process.env.FACILITATOR_KEY_ID || '',
+  facilitatorSecretKey: process.env.FACILITATOR_SECRET_KEY || '',
+  primaryFacilitator,
+  network: x402Network,
+  priceUSDC: x402PriceUSDC,
+  usdcAssetAddress: (process.env.X402_USDC_ASSET || '').trim()
+}
+
 export default {
   // Configure TCP port.
   port: process.env.PORT || 5040,
@@ -162,5 +223,10 @@ export default {
   disableNewAccounts: process.env.DISABLE_NEW_ACCOUNTS ? true : false,
 
   // Admin password
-  adminPassword: process.env.ADMIN_PASSWORD
+  adminPassword: process.env.ADMIN_PASSWORD,
+
+  // REST API base path for x402 route config (protects `* {apiPrefix}/*`, e.g. /ipfs/*)
+  apiPrefix: process.env.API_PREFIX || '/ipfs',
+
+  x402: x402Defaults
 }

@@ -1,9 +1,10 @@
 class PSFFPPMock {
-    constructor() {
-        this.createPinClaim = async () => {
-            return 'txid'
-        }
-    }
+  constructor () {
+    this.createPinClaim = async () => ({
+      pobTxid: 'pob-txid',
+      claimTxid: 'claim-txid'
+    })
+  }
 }
 
 export default { PSFFPPMock }

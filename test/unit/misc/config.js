@@ -59,4 +59,17 @@ describe('#config', () => {
 
     assert.equal(config.env, 'prod')
   })
+
+  it('Should use DBURL in production config when set', async () => {
+    const customUrl = 'mongodb://custom:27017/custom-db'
+    const saved = process.env.DBURL
+    process.env.DBURL = customUrl
+    try {
+      const p = await import('../../../config/env/production.js?test=dburl')
+      assert.equal(p.default.database, customUrl)
+    } finally {
+      if (saved === undefined) delete process.env.DBURL
+      else process.env.DBURL = saved
+    }
+  })
 })

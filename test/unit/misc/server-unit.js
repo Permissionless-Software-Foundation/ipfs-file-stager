@@ -30,14 +30,17 @@ describe('#server', () => {
       sandbox.stub(uut.adminLib, 'createSystemUser').resolves(true)
       sandbox.stub(uut.controllers, 'attachControllers').resolves()
       uut.config.env = 'dev'
-      uut.config.port = 5040
+      // Ephemeral port avoids EADDRINUSE when 5040 is already taken.
+      uut.config.port = 0
       const result = await uut.startServer()
       // console.log('result: ', result)
 
       assert.property(result, 'env')
 
       // Turn off the server.
-      uut.server.close()
+      await new Promise((resolve, reject) => {
+        uut.server.close((err) => (err ? reject(err) : resolve()))
+      })
 
       // Restor config env
       uut.config.env = 'test'

@@ -1,3 +1,4 @@
+/* eslint-env mocha */
 /*
   Unit tests for the use-cases/usage-use-cases.js business logic library.
 */
@@ -116,6 +117,12 @@ describe('#usage-use-case', () => {
   })
 
   describe('#getTopIps', () => {
+    it('should return an empty list when there are no calls', () => {
+      const result = uut.getTopIps()
+      assert.isArray(result)
+      assert.lengthOf(result, 0)
+    })
+
     it('should get top IPs', () => {
       // Set mock data
       restCalls.push({
@@ -171,6 +178,12 @@ describe('#usage-use-case', () => {
   })
 
   describe('#getTopEndpoints', () => {
+    it('should return an empty list when there are no calls', () => {
+      const result = uut.getTopEndpoints()
+      assert.isArray(result)
+      assert.lengthOf(result, 0)
+    })
+
     it('should get top Endpoints', () => {
       // Set mock data
       restCalls.push({
@@ -273,6 +286,11 @@ describe('#usage-use-case', () => {
   })
 
   describe('#saveUsage', () => {
+    it('should return true when there is nothing to save', async () => {
+      const res = await uut.saveUsage()
+      assert.isTrue(res)
+    })
+
     it('should save usage', async () => {
       // Set mock data
       restCalls.push({
@@ -316,6 +334,20 @@ describe('#usage-use-case', () => {
       sandbox.stub(uut.UsageModel, 'find').throws(new Error('uut error'))
       const res = await uut.loadUsage()
       assert.isFalse(res)
+    })
+
+    it('should log when usage[5] is present', async () => {
+      const logSpy = sandbox.stub(console, 'log')
+      const mockObj = {
+        timestamp: new Date().getTime(),
+        ip: 'localhost',
+        url: 'fakeUrl',
+        method: 'unit test'
+      }
+      const rows = new Array(6).fill(null).map(() => ({ ...mockObj }))
+      sandbox.stub(uut.UsageModel, 'find').resolves(rows)
+      await uut.loadUsage()
+      assert.isTrue(logSpy.called)
     })
   })
 })

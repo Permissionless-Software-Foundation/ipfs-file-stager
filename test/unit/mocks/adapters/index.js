@@ -108,7 +108,9 @@ const localdb = {
 
   Usage: class Usage {
     static findById () {}
-    static find () {}
+    static async find () {
+      return []
+    }
     static findOne () {
       return {
         validatePassword: localdb.validatePassword

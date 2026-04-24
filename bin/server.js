@@ -24,6 +24,9 @@ import { koaBody } from 'koa-body'
 // Local libraries
 import config from '../config/index.js' // this first.
 
+import { applyX402KoaStack } from '../src/middleware/x402-koa-stack.js'
+import DiscoveryKoaRouter from '../src/controllers/discovery/index.js'
+
 import AdminLib from '../src/adapters/admin.js'
 import errorMiddleware from '../src/controllers/rest-api/middleware/error.js'
 import { usageMiddleware } from '../src/use-cases/usage-use-cases.js'
@@ -67,7 +70,30 @@ class Server {
 
       app.use(convert(logger()))
       // app.use(bodyParser())
+      app.use(
+        cors({
+          origin: '*',
+          exposeHeaders: [
+            'PAYMENT-REQUIRED',
+            'PAYMENT-RESPONSE',
+            'PAYMENT-SIGNATURE',
+            'X-PAYMENT-RESPONSE'
+          ],
+          allowHeaders: [
+            'Content-Type',
+            'Authorization',
+            'X-Requested-With',
+            'PAYMENT-SIGNATURE',
+            'PAYMENT-REQUIRED',
+            'PAYMENT-RESPONSE',
+            'X-PAYMENT',
+            'X-PAYMENT-RESPONSE'
+          ],
+          allowMethods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS']
+        })
+      )
       app.use(koaBody({ multipart: true }))
+      applyX402KoaStack(app, { config: this.config })
       app.use(session())
       app.use(errorMiddleware())
       app.use(usageMiddleware())
@@ -87,16 +113,14 @@ class Server {
       app.use(passport.initialize())
       app.use(passport.session())
 
-      // Enable CORS for testing
-      // THIS IS A SECURITY RISK. COMMENT OUT FOR PRODUCTION
-      // Dev Note: This line must come BEFORE controllers.attachRESTControllers()
-      app.use(cors({ origin: '*' }))
-
       // Wait for any adapters to initialize.
       await this.controllers.initAdapters()
 
       // Wait for any use-libraries to initialize.
       await this.controllers.initUseCases()
+
+      const discovery = new DiscoveryKoaRouter()
+      discovery.attach(app)
 
       // Attach REST API and JSON RPC controllers to the app.
       await this.controllers.attachRESTControllers(app)

@@ -411,4 +411,24 @@ describe('#IPFS REST API', () => {
       assert.property(ctx.body, 'success')
     })
   })
+
+  describe('#generatePinClaim', () => {
+    it('should return 422 status on biz logic error', async () => {
+      try {
+        sandbox.stub(uut.useCases.ipfs, 'generatePinClaim').rejects(new Error('x402 claim failed'))
+        ctx.request.body = { fileSizeInMegabytes: 1, cid: 'bafy', filename: 'f.txt' }
+        await uut.generatePinClaim(ctx)
+        assert.fail('Unexpected result')
+      } catch (err) {
+        assert.equal(err.status, 422)
+      }
+    })
+
+    it('should return 200 status on success', async () => {
+      sandbox.stub(uut.useCases.ipfs, 'generatePinClaim').resolves({ success: true, pobTxid: 'a', claimTxid: 'b' })
+      ctx.request.body = { fileSizeInMegabytes: 1, cid: 'bafy', filename: 'f.txt' }
+      await uut.generatePinClaim(ctx)
+      assert.propertyVal(ctx.body, 'success', true)
+    })
+  })
 })
