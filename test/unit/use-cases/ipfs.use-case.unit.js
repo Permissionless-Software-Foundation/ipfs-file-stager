@@ -290,22 +290,24 @@ describe('#ipfs-use-case', () => {
       assert.equal(result.bchCost, 0.00002)
     })
 
-    it('should apply the 100 KB floor to small files', async () => {
+    it('should apply the dust-bounded 100 KB floor to small files', async () => {
       sandbox.stub(uut, '_getPinServiceQuote').resolves({ address: PAYOUT_ADDRESS, satsPerMb: 2000 })
 
-      // 10 KB is below the floor: ceil(0.1 * 2000) = 200 sats.
+      // 10 KB is below the floor: ceil(0.1 * 2000) = 200 sats, but the BCH dust
+      // limit (546) dominates in requiredSatsBCH().
       const result = await uut.getBchCost({ sizeInMb: 0.01 })
 
-      assert.equal(result.satsRequired, 200)
+      assert.equal(result.satsRequired, 546)
     })
 
     it('should round the file size up to whole bytes', async () => {
-      sandbox.stub(uut, '_getPinServiceQuote').resolves({ address: PAYOUT_ADDRESS, satsPerMb: 2000 })
+      sandbox.stub(uut, '_getPinServiceQuote').resolves({ address: PAYOUT_ADDRESS, satsPerMb: 6000 })
 
-      // 0.1000001 MB → 100001 bytes → 201 sats, just above the floor.
+      // 0.1000001 MB → 100001 bytes → 601 sats, above both the 600-sat 100 KB
+      // floor and the 546-sat dust limit.
       const result = await uut.getBchCost({ sizeInMb: 0.1000001 })
 
-      assert.equal(result.satsRequired, 201)
+      assert.equal(result.satsRequired, 601)
     })
 
     it('should fail closed if the quote can not be retrieved', async () => {
