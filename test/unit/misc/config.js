@@ -59,4 +59,27 @@ describe('#config', () => {
 
     assert.equal(config.env, 'prod')
   })
+
+  it('Should strip a trailing slash from PIN_SERVICE_URL', async () => {
+    process.env.PIN_SERVICE_URL = 'http://127.0.0.1:5031/'
+
+    // Import common.js directly with a unique cache-busting query so the module
+    // is re-evaluated with the env var just set (a trailing slash on the
+    // pin-service URL produces '//ipfs/payment-address' which 404s).
+    const { default: common } = await import('../../../config/env/common.js?stripTest=1')
+
+    assert.equal(common.pinServiceUrl, 'http://127.0.0.1:5031')
+
+    delete process.env.PIN_SERVICE_URL
+  })
+
+  it('Should leave a PIN_SERVICE_URL without trailing slash unchanged', async () => {
+    process.env.PIN_SERVICE_URL = 'http://127.0.0.1:5031'
+
+    const { default: common } = await import('../../../config/env/common.js?stripTest=2')
+
+    assert.equal(common.pinServiceUrl, 'http://127.0.0.1:5031')
+
+    delete process.env.PIN_SERVICE_URL
+  })
 })
