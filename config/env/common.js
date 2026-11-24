@@ -157,7 +157,9 @@ export default {
   // of the BCH payout address and the sats/MB rate (PS010 v2.0.0 §6, step 1),
   // and it validates the payment before pinning the file. Example value:
   // https://pin.fullstack.cash
-  pinServiceUrl: process.env.PIN_SERVICE_URL ? process.env.PIN_SERVICE_URL : '',
+  pinServiceUrl: process.env.PIN_SERVICE_URL
+    ? process.env.PIN_SERVICE_URL.replace(/\/+$/, '')
+    : '',
 
   // Account Configuration
   disableNewAccounts: process.env.DISABLE_NEW_ACCOUNTS ? true : false,
