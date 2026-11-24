@@ -1,12 +1,17 @@
 /*
   Use case library for working with IPFS.
+
+  BCH payments follow PS010 v2.0.0, Phase 1: the pin-service is the only source
+  of the payout address and the sats/MB rate, the user pays sats directly to
+  that payout address, and this app publishes the Pin Claim with the payment
+  txid in field 2 of the OP_RETURN. There is no per-payment key pair, no WIF at
+  rest, no sweep, and no PSF token burn.
 */
 
 // Global npm libraries
 // import { exporter } from 'ipfs-unixfs-exporter'
 import fs from 'fs'
 import axios from 'axios'
-import BchTokenSweep from 'bch-token-sweep'
 import PSFFPP from 'psffpp'
 
 // Local libraries
@@ -27,8 +32,10 @@ class IpfsUseCases {
     this.fs = fs
     this.axios = axios
     this.config = config
-    this.BchTokenSweep = BchTokenSweep
     this.PSFFPP = PSFFPP
+    // Client-side copy of the PS010 fee schedule, shipped by psffpp. Undefined
+    // on older releases; getBchCost() fails closed in that case.
+    this.requiredSatsBCH = PSFFPP.requiredSatsBCH
 
     // Bind 'this' object to all class subfunctions.
     this.upload = this.upload.bind(this)
@@ -37,6 +44,10 @@ class IpfsUseCases {
     this.getPaymentAddr = this.getPaymentAddr.bind(this)
     this.createPinClaim = this.createPinClaim.bind(this)
     this.getBchCost = this.getBchCost.bind(this)
+    this._getPinServiceQuote = this._getPinServiceQuote.bind(this)
+    this._getPaymentTx = this._getPaymentTx.bind(this)
+    this._satsPaidToAddress = this._satsPaidToAddress.bind(this)
+    this._normalizeAddress = this._normalizeAddress.bind(this)
 
     // State
     this.cids = []
@@ -144,155 +155,235 @@ class IpfsUseCases {
     return true
   }
 
-  // Generate a new payment model. Calculate the cost to write the data, in BCH.
+  // Fetch the Phase-1 payment quote from the pin-service (PS010 v2.0.0 §6,
+  // step 1): GET {pinServiceUrl}/ipfs/payment-address → { address, satsPerMb }.
+  //
+  // Fails closed: if the pin-service can not be reached, or does not return
+  // both a payout address and a rate, this throws. There is no hardcoded
+  // fallback address and no fallback price.
+  async _getPinServiceQuote () {
+    if (!this.config.pinServiceUrl) {
+      throw new Error('PIN_SERVICE_URL is not configured. Can not quote the cost of a pin.')
+    }
+
+    const url = `${this.config.pinServiceUrl}/ipfs/payment-address`
+
+    let response
+    try {
+      response = await this.axios.get(url)
+    } catch (err) {
+      throw new Error(`Failed to get a pin price from ${url}: ${err.message}`)
+    }
+
+    const { address, satsPerMb } = response.data || {}
+
+    if (!address || typeof address !== 'string') {
+      throw new Error(`The pin-service at ${url} did not return a payout address. Refusing to quote a price.`)
+    }
+    if (typeof satsPerMb !== 'number' || !Number.isFinite(satsPerMb) || satsPerMb <= 0) {
+      throw new Error(`The pin-service at ${url} did not return a usable satsPerMb rate. Refusing to quote a price.`)
+    }
+
+    return { address, satsPerMb }
+  }
+
+  // Get the payment address and the amount to pay, in sats, for a file.
+  //
+  // PS010 v2.0.0 Phase 1 has a single, operator-configured payout address for
+  // the whole deployment, so this endpoint is a quote: no key pair is generated
+  // and no payment record is stored. The response shape is kept for the
+  // explorer: { address, satsRequired, bchCost }.
   async getPaymentAddr (inObj = {}) {
     try {
       const { sizeInMb } = inObj
 
-      const bchCost = await this.getBchCost({ sizeInMb })
-      console.log('bchCost: ', bchCost)
-      // const result = await this.adapters.wallet.getPaymentAddr()
-      // return result
+      const { address, satsRequired, bchCost } = await this.getBchCost({ sizeInMb })
 
-      // Generate a new key pair
-      const { cashAddress, wif, hdIndex } = await this.adapters.wallet.getKeyPair()
-      console.log(`Got address ${cashAddress} from hdIndex ${hdIndex}.`)
-
-      const now = new Date()
-
-      // Round up to 1MB if the file is less than 1MB.
-      let effectiveSize = sizeInMb
-      if (effectiveSize < 1) {
-        effectiveSize = 1
-      }
-
-      // Create a new BCH payment database model.
-      const paymentModel = {
-        address: cashAddress,
-        wif,
-        bchCost,
-        timeCreated: now.toISOString(),
-        hdIndex,
-        sizeInMb: effectiveSize
-      }
-      const bchPaymentModel = new this.adapters.localdb.BchPayment(paymentModel)
-      await bchPaymentModel.save()
-
-      const result = {
-        address: cashAddress,
+      return {
+        address,
+        satsRequired,
         bchCost
       }
-
-      return result
     } catch (err) {
       console.error('Error in ipfs-use-cases.js/getPaymentAddr(): ', err)
       throw err
     }
   }
 
-  // Create a new Pin Claim if the payment address has been funded.
+  // Create a Pin Claim for a file that has already been paid for in BCH
+  // (PS010 v2.0.0 §6, steps 4-6).
+  //
+  // 1. Fetch the payment TX. If it can not be found, the payment has not
+  //    propagated yet, so this fails closed.
+  // 2. Verify the payment TX pays the payout address advertised by the
+  //    pin-service (any output, normalized cashaddr comparison).
+  // 3. Build and broadcast the Pin Claim, with the payment txid in field 2.
+  //
+  // No sweep to the app wallet. No PSF burn. No payment record to update.
   async createPinClaim (inObj = {}) {
     try {
-      const { address, cid, filename } = inObj
+      const { cid, filename, paymentTxid } = inObj
       console.log('cid: ', cid)
-      console.log('address: ', address)
-      const paymentModel = await this.adapters.localdb.BchPayment.findOne({ address })
-      if (!paymentModel) {
-        throw new Error(`Payment address ${address} not found in database.`)
+      console.log('paymentTxid: ', paymentTxid)
+
+      // Input validation
+      if (!cid) {
+        throw new Error('cid required to create a pin claim.')
       }
-      console.log('paymentModel: ', paymentModel)
+      if (!filename) {
+        throw new Error('filename required to create a pin claim.')
+      }
+      if (!paymentTxid) {
+        throw new Error('paymentTxid required to create a pin claim.')
+      }
 
       const wallet = this.adapters.wallet.bchWallet
 
-      // Verify payment exists and is equal to or greater than the quoted cost.
-      const paymentAddress = paymentModel.address
-      const paymentBalance = await wallet.getBalance({ bchAddress: paymentAddress })
-      if (paymentBalance < paymentModel.bchCost) {
-        throw new Error(`Payment address ${paymentAddress} has insufficient balance.`)
+      // 1. Fetch the payment TX from the blockchain.
+      const txData = await this._getPaymentTx({ paymentTxid, wallet })
+
+      // 2. The payment must pay the pin-service payout address.
+      const { address: payoutAddress } = await this._getPinServiceQuote()
+      const satsPaid = this._satsPaidToAddress({ txData, address: payoutAddress })
+      if (satsPaid === 0) {
+        throw new Error(`Payment TX ${paymentTxid} does not pay the payout address ${payoutAddress}.`)
       }
+      console.log(`Payment TX ${paymentTxid} pays ${satsPaid} sats to ${payoutAddress}.`)
 
-      // Sweep funds to the main wallet.
-      const sweeper = new this.BchTokenSweep(
-        paymentModel.wif,
-        wallet.walletInfo.privateKey,
-        wallet
-      )
-      await sweeper.populateObjectFromNetwork()
-      const hex = await sweeper.sweepTo(wallet.walletInfo.cashAddress)
-      const txid = await wallet.ar.sendTx(hex)
-      console.log('Swept funds to main app wallet. TXID: ', txid)
-
-      // Issue a Pin Claim.
+      // 3. Build + broadcast the claim. The pin-service validates the amount.
       const psffpp = new this.PSFFPP({ wallet })
-      const pinObj = {
-        cid,
-        filename,
-        fileSizeInMegabytes: parseInt(paymentModel.sizeInMb)
+      if (typeof psffpp.createPinClaimBCH !== 'function') {
+        throw new Error('The installed psffpp library does not implement createPinClaimBCH(). Update the psffpp dependency.')
       }
-      console.log('pinObj: ', pinObj)
-      const { pobTxid, claimTxid } = await psffpp.createPinClaim(pinObj)
-      console.log('Created Pin Claim: ', { pobTxid, claimTxid })
+      const { claimTxid } = await psffpp.createPinClaimBCH({ cid, filename, paymentTxid })
+      console.log('Created Pin Claim: ', claimTxid)
 
-      // Update the model
-      paymentModel.pobTxId = pobTxid
-      paymentModel.claimTxId = claimTxid
-      await paymentModel.save()
-
-      const result = {
+      return {
         success: true,
-        pobTxid,
+        paymentTxid,
         claimTxid
       }
-
-      return result
     } catch (err) {
       console.error('Error in ipfs-use-cases.js/createPinClaim(): ', err)
       throw err
     }
   }
 
+  // Get the cost to pin a file, in satoshis (PS010 v2.0.0 §6, steps 1-3).
+  //
+  // The quote (payout address + sats/MB) comes from the pin-service, and the
+  // amount is computed with the shared fee schedule, which already includes the
+  // locked 100 KB minimum charge. Fails closed on any error or missing field.
   async getBchCost (inObj = {}) {
     try {
       const { sizeInMb } = inObj
 
-      const wallet = this.adapters.wallet.bchWallet
-      const bchjs = wallet.bchjs
-
-      // Get the cost in PSF tokens to write 1MB to the network.
-      const writePrice = await wallet.getPsfWritePrice()
-      console.log('ipfs-use-cases.js/getPaymentAddr() writePrice: ', writePrice)
-
-      // Get the current cost of PSF tokens in BCH.
-      const response = await this.axios.get(`${this.config.apiServer}/price/psf`)
-      const usdPerBch = response.data.usdPerBCH
-      const usdPerToken = response.data.usdPerToken
-      console.log('usdPerBch: ', usdPerBch)
-      console.log('usdPerToken: ', usdPerToken)
-      const bchPerToken = bchjs.Util.floor8(usdPerToken / usdPerBch)
-      console.log('ipfs-use-cases.js/getPaymentAddr() bchPerToken: ', bchPerToken)
-
-      // Round up to 1MB if the file is less than 1MB.
-      let effectiveSize = sizeInMb
-      if (effectiveSize < 1) {
-        effectiveSize = 1
+      if (typeof sizeInMb !== 'number' || !Number.isFinite(sizeInMb) || sizeInMb < 0) {
+        throw new Error('sizeInMb must be a finite number >= 0')
       }
 
-      // Cost to user in BCH will be the price to write the file plus 10% markup.
-      const psfCost = effectiveSize * writePrice
-      console.log('psfCost: ', psfCost)
+      // The 100 KB floor is applied inside requiredSatsBCH(), not here.
+      const fileSizeBytes = Math.ceil(sizeInMb * 1e6)
 
-      // Expected transaction fees in BCH.
-      const txFees = 0.00004
+      const { address, satsPerMb } = await this._getPinServiceQuote()
+      console.log(`Payout address ${address} at ${satsPerMb} sats/MB for ${fileSizeBytes} bytes.`)
 
-      const bchCost = bchjs.Util.floor8(psfCost * bchPerToken * (1 + this.config.markup) + txFees)
-      console.log('bchCost: ', bchCost)
-      // const result = await this.adapters.wallet.getPaymentAddr()
-      // return result
-      return bchCost
+      if (typeof this.requiredSatsBCH !== 'function') {
+        throw new Error('The installed psffpp library does not implement requiredSatsBCH(). Update the psffpp dependency.')
+      }
+
+      const satsRequired = this.requiredSatsBCH({ fileSizeBytes, satsPerMb })
+      console.log('satsRequired: ', satsRequired)
+
+      const result = {
+        address,
+        satsRequired,
+        // Decimal BCH, for display purposes.
+        bchCost: satsRequired / 1e8
+      }
+
+      return result
     } catch (err) {
       console.error('Error in ipfs-use-cases.js/getBchCost(): ', err)
       throw err
     }
+  }
+
+  // Fetch a transaction from the blockchain. Throws if it is not found, so that
+  // a claim is never generated for a payment that the network has not seen.
+  async _getPaymentTx (inObj = {}) {
+    const { paymentTxid, wallet } = inObj
+
+    let txData
+    try {
+      txData = await wallet.getTxData([paymentTxid])
+    } catch (err) {
+      throw new Error(`Could not fetch payment TX ${paymentTxid}: ${err.message}`)
+    }
+
+    // getTxData() returns an array; tolerate a single object too.
+    if (Array.isArray(txData)) {
+      txData = txData[0]
+    }
+
+    if (!txData) {
+      throw new Error(`Payment TX ${paymentTxid} was not found on the blockchain.`)
+    }
+
+    return txData
+  }
+
+  // Sum the satoshis paid to a specific address by a transaction.
+  // Returns 0 if the transaction does not pay the address.
+  _satsPaidToAddress (inObj = {}) {
+    const { txData, address } = inObj
+
+    const target = this._normalizeAddress(address)
+    const outputs = txData.vout || txData.outputs || []
+
+    let satsPaid = 0
+    for (let i = 0; i < outputs.length; i++) {
+      const output = outputs[i]
+      const scriptPubKey = output.scriptPubKey || {}
+
+      let addresses = []
+      if (Array.isArray(scriptPubKey.addresses)) {
+        addresses = scriptPubKey.addresses
+      } else if (scriptPubKey.address) {
+        addresses = [scriptPubKey.address]
+      } else if (scriptPubKey.hex) {
+        // Some back ends omit the decoded address, so decode the script here.
+        try {
+          addresses = [this.adapters.wallet.bchWallet.bchjs.Address.fromOutputScript(Buffer.from(scriptPubKey.hex, 'hex'))]
+        } catch (err) {
+          addresses = []
+        }
+      }
+
+      for (let j = 0; j < addresses.length; j++) {
+        // Skip addresses that can not be normalized (e.g. exotic scripts).
+        let normalized
+        try {
+          normalized = this._normalizeAddress(addresses[j])
+        } catch (err) {
+          continue
+        }
+
+        if (normalized === target) {
+          satsPaid += Number(output.value)
+        }
+      }
+    }
+
+    return satsPaid
+  }
+
+  // Normalize a BCH address to its cashaddr form, so that comparison is stable
+  // (legacy Base58 vs cashaddr). Throws on an unusable address.
+  _normalizeAddress (address) {
+    const bchjs = this.adapters.wallet.bchWallet.bchjs
+
+    return bchjs.Address.toCashAddress(address)
   }
 }
 
