@@ -43,5 +43,7 @@ export CONNECT_PREF=cr
 
 # Enable BCH payments.
 #export ENABLE_BCH_PAYMENTS=true
+# Base URL of the pin-service (serves the payout address and sats/MB rate).
+#export PIN_SERVICE_URL=https://pin.example.com
 
 npm start

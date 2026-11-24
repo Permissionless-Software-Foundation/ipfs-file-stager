@@ -17,9 +17,11 @@ This code base is forked from [ipfs-service-provider](https://github.com/Permiss
 Optional Features:
 
 - Setting the `enableBchPayments` flag in the config will turn on BCH payments. This will:
-  - Opens the `POST /ipfs/getPaymentAddr` endpoint that allows users to obtain a BCH payment address.
-  - Opens the `POST /ipfs/createPinClaim` endpoint that allows users to pay a Pin Claim via the BCH payment address.
-  - The app will generate its own wallet.json file on startup, if it does not already exist. That wallet can be loaded with BCH and PSF tokens. The app will then be able to generate Pin Claims for payment in BCH. It will burn its own stash of PSF tokens to generate the PSF token and pass on the cost (plus a markup) to the end user in BCH.
+  - Open the `POST /ipfs/getBchCost` and `POST /ipfs/getPaymentAddr` endpoints, which quote the cost of a pin: the BCH payout address and the amount in satoshis, including the 100 KB minimum charge.
+  - Open the `POST /ipfs/createPinClaim` endpoint, which publishes a Pin Claim for a payment txid that pays the payout address.
+  - Require the `PIN_SERVICE_URL` environment variable. The [pin-service](https://github.com/Permissionless-Software-Foundation/ipfs-file-pin-service) is the only source of the payout address and the sats/MB rate; if it can not be reached, the quote fails closed.
+
+Per [PS010 v2.0.0](https://github.com/Permissionless-Software-Foundation/specifications), the user pays sats directly to the pin-service payout address (Phase 1: one operator-configured address). This app does not hold a per-payment WIF, does not sweep funds, and does not burn PSF tokens. It only publishes the Pin Claim, with the payment txid in field 2 of the OP_RETURN. The pin-service validates the payment before pinning the file.
 
 ## Requirements
 
@@ -44,10 +46,9 @@ docker-compose up -d
 
 *Optional*:
 If you want to enable BCH payments: 
- - Generate a wallet.json file with [psf-bch-wallet](https://github.com/Permissionless-Software-Foundation/psf-bch-wallet) and put it in the same directory as the docker-compose.yml file.
- - Add a property `nextAddress` to the wallet file, with a value of `2`.
+ - Generate a wallet.json file with [psf-bch-wallet](https://github.com/Permissionless-Software-Foundation/psf-bch-wallet) and put it in the same directory as the docker-compose.yml file. This wallet only funds the Pin Claim transactions; it does not receive or sweep user payments.
  - Uncomment the volume line in docker-compose.yml, so the wallet file is mounted on startup.
- - Uncomment the `ENABLE_BCH_PAYMENTS` environment variable in the start-production.sh file.
+ - Set the `PIN_SERVICE_URL` environment variable to the base URL of the pin-service, and uncomment the `ENABLE_BCH_PAYMENTS` environment variable in the start-production.sh file.
 
 ### Development Environment
 
@@ -99,6 +100,10 @@ There is additional developer documentation in the [dev-docs directory](./dev-do
 - [apidoc](http://apidocjs.com/)
 - [ESLint](http://eslint.org/)
 - [helia-coord](https://www.npmjs.com/package/helia-coord)
+- [psffpp](https://www.npmjs.com/package/psffpp) - the BCH payment path needs the
+  `createPinClaimBCH()` method and the `requiredSatsBCH` fee helper added for
+  PS010 v2.0.0. Both calls fail closed with a clear error on older releases, so
+  bump `psffpp` once that version is published.
 
 ## IPFS
 

@@ -300,15 +300,34 @@ class IpfsRESTControllerLib {
   }
 
   /**
-   * @api {post} /ipfs/getPaymentAddr Get a payment address to pay for file upload in BCH.
+   * @api {post} /ipfs/getPaymentAddr Get the BCH address and amount to pay for a pin.
    * @apiPermission public
    * @apiName GetPaymentAddr
    * @apiGroup REST BCH
-   * @apiDescription Get a payment address to pay for file upload in BCH.
+   * @apiDescription Quote the cost of pinning a file (PS010 v2.0.0 §6). The
+   * payout address and the sats/MB rate come from the pin-service. In Phase 1
+   * there is a single payout address for the whole deployment, so this is a
+   * quote: no payment address is generated and no payment record is stored.
+   * The amount already includes the locked 100 KB minimum charge.
+   *
+   * @apiParam {Number} sizeInMb Size of the file, in megabytes.
    *
    * @apiExample Example usage:
    * curl -H "Content-Type: application/json" -X POST -d '{ "sizeInMb": 1 }' localhost:5040/ipfs/getPaymentAddr
    *
+   * @apiSuccess {String} address BCH payout address to pay.
+   * @apiSuccess {Number} satsRequired Amount to pay, in satoshis.
+   * @apiSuccess {Number} bchCost The same amount in BCH, for display.
+   *
+   * @apiSuccessExample {json} Success-Response:
+   *     HTTP/1.1 200 OK
+   *     {
+   *       "address": "bitcoincash:qrhmpdplkmr2lwf8ekusaxzqntx7c9hp9utzcvkjcr",
+   *       "satsRequired": 2000,
+   *       "bchCost": 0.00002
+   *     }
+   *
+   * @apiError UnprocessableEntity The pin-service did not return a usable quote.
    */
   async getPaymentAddr (ctx) {
     try {
@@ -330,24 +349,36 @@ class IpfsRESTControllerLib {
   }
 
   /**
-   * @api {post} /ipfs/createPinClaim Create a Pin Claim for a file.
+   * @api {post} /ipfs/createPinClaim Create a Pin Claim for a paid file.
    * @apiPermission public
    * @apiName createPinClaim
    * @apiGroup REST BCH
-   * @apiDescription Create a Pin Claim for a file if the payment address has been funded.
+   * @apiDescription Publish a Pin Claim for a file that has already been paid
+   * for in BCH (PS010 v2.0.0 §6, steps 4-6). The payment TX must pay the payout
+   * address quoted by the pin-service; the payment txid goes in field 2 of the
+   * claim OP_RETURN and the pin-service validates the amount.
+   *
+   * @apiParam {String} cid CID of the uploaded file.
+   * @apiParam {String} filename Original filename, with extension.
+   * @apiParam {String} paymentTxid TXID of the BCH payment to the payout address.
    *
    * @apiExample Example usage:
    * curl -H "Content-Type: application/json" -X POST \
-   * -d '{ "address": "bitcoincash:qq0jhnhd8wjjfx0295vafhku3vj9s5j3zcfcg2zlyn", \
-   * "cid": "bafybeidhiave6yci6gih6ixv5dp63p2qsgfxei4fwg77fov45qezewlpgq", \
-   * "filename": "test.txt" }' localhost:5040/ipfs/createPinClaim
+   * -d '{ "cid": "bafybeidhiave6yci6gih6ixv5dp63p2qsgfxei4fwg77fov45qezewlpgq", \
+   * "filename": "test.txt", \
+   * "paymentTxid": "be4b63156c93f58ed311d403d9f756deda9abbc81d0fef8fbe5d769538b4261c" }' \
+   * localhost:5040/ipfs/createPinClaim
+   *
+   * @apiSuccess {Boolean} success Always true on success.
+   * @apiSuccess {String} paymentTxid TXID of the BCH payment.
+   * @apiSuccess {String} claimTxid TXID of the Pin Claim transaction.
    *
    */
   async createPinClaim (ctx) {
     try {
-      const { address, cid, filename } = ctx.request.body
+      const { cid, filename, paymentTxid } = ctx.request.body
 
-      const result = await this.useCases.ipfs.createPinClaim({ address, cid, filename })
+      const result = await this.useCases.ipfs.createPinClaim({ cid, filename, paymentTxid })
 
       ctx.body = result
     } catch (err) {
@@ -357,15 +388,24 @@ class IpfsRESTControllerLib {
   }
 
   /**
-   * @api {post} /ipfs/getBchCost Get the cost in BCH to write a file to the network.
+   * @api {post} /ipfs/getBchCost Get the cost, in sats, to pin a file.
    * @apiPermission public
    * @apiName getBchCost
    * @apiGroup REST BCH
-   * @apiDescription Get the cost in BCH to write a file to the network.
+   * @apiDescription Quote the cost of pinning a file, in satoshis, using the
+   * payout address and sats/MB rate served by the pin-service (PS010 v2.0.0
+   * §3 and §6). The 100 KB minimum charge is already included.
+   *
+   * @apiParam {Number} sizeInMb Size of the file, in megabytes.
    *
    * @apiExample Example usage:
    * curl -H "Content-Type: application/json" -X POST -d '{ "sizeInMb": 1 }' localhost:5040/ipfs/getBchCost
    *
+   * @apiSuccess {String} address BCH payout address to pay.
+   * @apiSuccess {Number} satsRequired Amount to pay, in satoshis.
+   * @apiSuccess {Number} bchCost The same amount in BCH, for display.
+   *
+   * @apiError UnprocessableEntity The pin-service did not return a usable quote.
    */
   async getBchCost (ctx) {
     try {
