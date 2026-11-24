@@ -55,8 +55,8 @@ RUN git clone https://github.com/Permissionless-Software-Foundation/ipfs-file-st
 # and `stage` has the most up-to-date changes.
 WORKDIR /home/safeuser/ipfs-file-stager
 
-# For development: switch to unstable branch
-RUN git checkout ct-unstable
+# Switch to the stable master branch.
+RUN git checkout master
 
 # Install dependencies
 #RUN mkdir .ipfsdata
