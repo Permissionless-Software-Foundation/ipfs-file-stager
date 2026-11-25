@@ -72,6 +72,10 @@ const localdb = {
       return true
     }
 
+    async deleteOne () {
+      return true
+    }
+
     async validatePassword () {
       return true
     }
@@ -98,6 +102,10 @@ const localdb = {
     }
 
     async remove () {
+      return true
+    }
+
+    async deleteOne () {
       return true
     }
 
