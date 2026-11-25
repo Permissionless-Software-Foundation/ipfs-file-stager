@@ -39,8 +39,16 @@ WORKDIR /home/safeuser
 #RUN npm install -g npm@7.23.0
 #RUN npm install -g npm
 
-# npm mirror to prevent direct dependency on npm.
-RUN npm set registry http://94.130.170.209:4873/
+# npm registry. Defaults to the canonical npm registry, which is where
+# package-lock.json resolves every dependency from. Override at build time
+# (e.g. to use a local mirror) with:
+#   docker compose build --build-arg NPM_REGISTRY=https://my-mirror.example/
+#
+# This used to be hardcoded to http://94.130.170.209:4873/. That mirror served
+# a corrupted @psf/bch-js@7.1.15 tarball, which broke `--no-cache` builds with
+# npm EINTEGRITY. Cached build layers had been hiding it.
+ARG NPM_REGISTRY=https://registry.npmjs.org/
+RUN npm set registry ${NPM_REGISTRY}
 
 # Switch to user account.
 #USER safeuser
