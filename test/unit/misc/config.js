@@ -83,3 +83,84 @@ describe('#config', () => {
     delete process.env.PIN_SERVICE_URL
   })
 })
+
+describe('#config BOOTSTRAP_SERVERS', () => {
+  // Two representative multiaddrs, kept here so each case stays readable.
+  const PEER_1 =
+    '/ip4/172.18.0.3/tcp/4101/p2p/12D3KooWDDrYph3KNxASGR5a4Bjw8thVTfK6MHiNCSz6GvygXwdR'
+  const PEER_2 =
+    '/ip4/143.198.134.59/tcp/4101/p2p/12D3KooWHogx3RcyNiSuY6SzS8GxzTAqtDCYzy17yQ1StWaLvX9j'
+
+  let savedBootstrapServers
+
+  before(() => {
+    savedBootstrapServers = process.env.BOOTSTRAP_SERVERS
+  })
+
+  afterEach(() => {
+    // Restore the original value so other tests are unaffected.
+    if (savedBootstrapServers === undefined) {
+      delete process.env.BOOTSTRAP_SERVERS
+    } else {
+      process.env.BOOTSTRAP_SERVERS = savedBootstrapServers
+    }
+  })
+
+  // Each case re-imports the module with a unique query string, because ESM
+  // caches modules and the config is evaluated once at import time.
+  const importConfig = (tag) => import(`../../../config/env/common.js?${tag}`)
+
+  it('Should be undefined when BOOTSTRAP_SERVERS is unset', async () => {
+    delete process.env.BOOTSTRAP_SERVERS
+
+    const config = (await importConfig('bootstrap0')).default
+
+    assert.equal(config.bootstrapPeers, undefined)
+  })
+
+  it('Should parse a single bootstrap server', async () => {
+    process.env.BOOTSTRAP_SERVERS = PEER_1
+
+    const config = (await importConfig('bootstrap1')).default
+
+    assert.deepEqual(config.bootstrapPeers, [PEER_1])
+  })
+
+  it('Should split a comma-delimited list and trim whitespace', async () => {
+    process.env.BOOTSTRAP_SERVERS = `${PEER_1}, ${PEER_2}`
+
+    const config = (await importConfig('bootstrap2')).default
+
+    assert.deepEqual(config.bootstrapPeers, [PEER_1, PEER_2])
+  })
+
+  it('Should ignore blank entries', async () => {
+    process.env.BOOTSTRAP_SERVERS = `${PEER_1},,  ,`
+
+    const config = (await importConfig('bootstrap3')).default
+
+    assert.deepEqual(config.bootstrapPeers, [PEER_1])
+  })
+
+  it('Should be undefined for an empty/whitespace-only value', async () => {
+    process.env.BOOTSTRAP_SERVERS = '   '
+
+    const config = (await importConfig('bootstrap4')).default
+
+    assert.equal(config.bootstrapPeers, undefined)
+  })
+
+  it('Should throw on a malformed multiaddr', async () => {
+    process.env.BOOTSTRAP_SERVERS = '172.18.0.3:4101'
+
+    let threw = false
+    try {
+      await importConfig('bootstrap5')
+    } catch (err) {
+      threw = true
+      assert.include(err.message, 'BOOTSTRAP_SERVERS')
+    }
+
+    assert.equal(threw, true)
+  })
+})
