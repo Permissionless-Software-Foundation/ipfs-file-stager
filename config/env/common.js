@@ -6,6 +6,9 @@
   - CONNECT_PREF: should have a value of 'cr' (default), or 'direct'. This is
     used by helia-coord to select a connection preference between peers. Servers
     with an ip4 or ip6 address should use 'direct'.
+  - BOOTSTRAP_SERVERS: comma-delimited list of peer multiaddrs, replacing the
+    hard-coded DEFAULT_BOOTSTRAP_PEERS list in helia-coord. Unset uses those
+    defaults. Format and example in the README.
 */
 
 /* eslint  no-unneeded-ternary:0 */
@@ -24,6 +27,35 @@ const version = pkgInfo.version
 const ipfsCoordName = process.env.COORD_NAME
   ? process.env.COORD_NAME
   : 'ipfs-bch-wallet-service'
+
+// Parse the BOOTSTRAP_SERVERS environment variable into an array of multiaddr
+// strings. Returns undefined when the variable is unset or blank, so that
+// helia-coord falls back to its own DEFAULT_BOOTSTRAP_PEERS list. That fallback
+// only happens for undefined/null: an empty array would be passed through and
+// would disable bootstrap discovery entirely.
+//
+// A malformed entry throws at startup. A bad multiaddr otherwise produces a
+// cryptic libp2p failure minutes later, long after the misconfiguration.
+function parseBootstrapServers (envVal) {
+  if (!envVal || !envVal.trim()) return undefined
+
+  const servers = envVal
+    .split(',')
+    .map(server => server.trim())
+    .filter(server => server.length > 0)
+
+  if (servers.length === 0) return undefined
+
+  for (const server of servers) {
+    if (!server.startsWith('/')) {
+      throw new Error(
+        `BOOTSTRAP_SERVERS contains an invalid multiaddr: '${server}'. Each entry must start with '/', e.g. /ip4/1.2.3.4/tcp/4101/p2p/12D3KooW...`
+      )
+    }
+  }
+
+  return servers
+}
 
 export default {
   // Configure TCP port.
@@ -138,6 +170,11 @@ export default {
   // set above.
 
   chatPubSubChan: 'psf-ipfs-chat-001',
+
+  // Optional list of bootstrap peers, replacing helia-coord's hard-coded
+  // DEFAULT_BOOTSTRAP_PEERS. Set with the comma-delimited BOOTSTRAP_SERVERS
+  // environment variable. Undefined (default) keeps the helia-coord defaults.
+  bootstrapPeers: parseBootstrapServers(process.env.BOOTSTRAP_SERVERS),
 
   // This can add specific Circuit Relay v2 servers to connect to.
   bootstrapRelays: [
