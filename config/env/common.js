@@ -9,6 +9,11 @@
   - BOOTSTRAP_SERVERS: comma-delimited list of peer multiaddrs, replacing the
     hard-coded DEFAULT_BOOTSTRAP_PEERS list in helia-coord. Unset uses those
     defaults. Format and example in the README.
+  - ANNOUNCE_MULTIADDRS: comma-delimited list of multiaddrs added to this node's
+    announcement (read directly by helia-coord >= 2.1.0, so there is no config
+    key for it). Use it when the public address can not be auto-detected: behind
+    a NAT, a firewall, or a proxy such as a wireguard tunnel. Format and example
+    in the README.
 */
 
 /* eslint  no-unneeded-ternary:0 */
